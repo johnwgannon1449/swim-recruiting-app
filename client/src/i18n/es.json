@@ -93,5 +93,109 @@
     "default": "Cargando...",
     "saving": "Guardando...",
     "deleting": "Eliminando..."
+  },
+
+  "wizard": {
+    "back": "Atrás",
+    "next": "Continuar",
+    "step_of": "Paso {{current}} de {{total}}",
+
+    "steps": {
+      "1": "Seleccionar Clase",
+      "2": "Elegir Estándares",
+      "3": "Tu Lección",
+      "4": "Análisis de Brechas",
+      "5": "Recomendaciones",
+      "6": "Revisar",
+      "7": "Guardar"
+    },
+
+    "step1": {
+      "title": "¿Para qué clase es esta lección?",
+      "subtitle": "Selecciona una clase para pre-llenar el grado y los estándares, o agrega una nueva.",
+      "add_new": "Agregar una Nueva Clase"
+    },
+
+    "step2": {
+      "title": "¿Qué estándares debe cubrir esta lección?",
+      "subtitle": "Selecciona uno o más estándares para evaluar.",
+      "search_placeholder": "Buscar por palabra clave o código de estándar...",
+      "no_results": "No se encontraron estándares. Prueba con una búsqueda o grado diferente.",
+      "selected_count": "{{count}} seleccionado(s)",
+      "grade_filter": "Grado",
+      "type_filter": "Tipo de Estándares",
+      "select_to_continue": "Selecciona al menos un estándar para continuar"
+    },
+
+    "step3": {
+      "title": "Ingresa tu plan de lección",
+      "subtitle": "Escribe, sube o dicta tu lección. Puedes editar antes de continuar.",
+      "tab_type": "Escribir",
+      "tab_upload": "Subir Archivo",
+      "tab_speak": "Voz",
+      "type_placeholder": "Escribe o pega tu plan de lección aquí...",
+      "upload_drop": "Arrastra tu archivo .docx o .pdf aquí",
+      "upload_browse": "o haz clic para buscar archivos",
+      "upload_parsing": "Procesando tu archivo...",
+      "upload_success": "¡Archivo procesado! Revisa y edita abajo:",
+      "speak_start": "Toca para comenzar a grabar",
+      "speak_stop": "Toca para detener la grabación",
+      "speak_transcribing": "Transcribiendo tu grabación...",
+      "speak_review": "Transcripción lista — revisa y edita:",
+      "recording_time": "Grabando: {{seconds}}s"
+    },
+
+    "step4": {
+      "title_loading": "Analizando tu lección...",
+      "title_done": "Aquí está tu informe de cobertura",
+      "covered": "Bien Cubierto",
+      "partial": "Parcialmente Cubierto",
+      "missing": "Aún No Abordado",
+      "msg1": "Revisando tu lección...",
+      "msg2": "Verificando la cobertura de estándares...",
+      "msg3": "Evaluando cada objetivo de aprendizaje...",
+      "msg4": "Casi listo..."
+    },
+
+    "step5": {
+      "title": "Aquí hay algunas ideas para fortalecer tu lección",
+      "subtitle": "Acepta, edita o descarta cada sugerencia. Agrega tus propias ideas al final.",
+      "accept": "Agregar a la lección",
+      "edit": "Editar",
+      "dismiss": "Descartar",
+      "accepted": "Agregado ✓",
+      "dismissed": "Descartado",
+      "time": "{{time}}",
+      "materials": "{{materials}}",
+      "add_own": "Agrega tus propias ideas",
+      "add_own_placeholder": "Escribe cualquier actividad, nota o idea adicional que quieras incluir...",
+      "msg1": "Generando ideas de actividades...",
+      "msg2": "Adaptando sugerencias a tu nivel de grado...",
+      "msg3": "Casi listo..."
+    },
+
+    "step6": {
+      "title": "Revisa tu lección completa",
+      "subtitle": "Haz ediciones finales. El indicador de cobertura se actualiza mientras escribes.",
+      "coverage_sidebar": "Cobertura de Estándares",
+      "coverage_hint": "La cobertura se actualiza automáticamente cada 30 segundos de inactividad.",
+      "finalize": "Finalizar Lección",
+      "checking": "Verificando..."
+    },
+
+    "step7": {
+      "title": "¡Tu lección está lista!",
+      "title_saved": "¡Lección guardada! 🎉",
+      "subtitle": "Previsualiza tu lección formateada, expórtala a PDF y guárdala en tu archivo.",
+      "export_pdf": "Exportar PDF",
+      "save_archive": "Guardar en Archivo",
+      "saving": "Guardando...",
+      "saved": "¡Guardado en el archivo!",
+      "new_lesson": "Iniciar una Nueva Lección",
+      "go_archive": "Ir a Mi Archivo",
+      "msg1": "Formateando tu plan de lección...",
+      "msg2": "Organizando secciones...",
+      "msg3": "Casi listo..."
+    }
   }
 }

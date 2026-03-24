@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
@@ -55,11 +56,16 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Welcome header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t('dashboard.welcome', { name: user?.name?.split(' ')[0] })}
-        </h1>
-        <p className="text-gray-500 mt-1">{t('dashboard.subtitle')}</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t('dashboard.welcome', { name: user?.name?.split(' ')[0] })}
+          </h1>
+          <p className="text-gray-500 mt-1">{t('dashboard.subtitle')}</p>
+        </div>
+        <Link to="/wizard" className="btn-primary flex-shrink-0 text-base py-2.5 px-5">
+          ✨ {t('dashboard.start_lesson')}
+        </Link>
       </div>
 
       {/* Classes section */}

@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import ArchivePage from './pages/ArchivePage';
+import WizardPage from './pages/WizardPage';
 
 export default function App() {
   return (
@@ -33,6 +34,17 @@ export default function App() {
               <ProtectedRoute>
                 <Layout>
                   <ArchivePage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/wizard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <WizardPage />
                 </Layout>
               </ProtectedRoute>
             }

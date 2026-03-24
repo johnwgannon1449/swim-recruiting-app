@@ -93,5 +93,109 @@
     "default": "Loading...",
     "saving": "Saving...",
     "deleting": "Deleting..."
+  },
+
+  "wizard": {
+    "back": "Back",
+    "next": "Continue",
+    "step_of": "Step {{current}} of {{total}}",
+
+    "steps": {
+      "1": "Select Class",
+      "2": "Choose Standards",
+      "3": "Your Lesson",
+      "4": "Gap Analysis",
+      "5": "Recommendations",
+      "6": "Review",
+      "7": "Save"
+    },
+
+    "step1": {
+      "title": "Which class is this lesson for?",
+      "subtitle": "Select a class to pre-fill grade and standards, or add a new one.",
+      "add_new": "Add a New Class"
+    },
+
+    "step2": {
+      "title": "Which standards should this lesson cover?",
+      "subtitle": "Select one or more standards to evaluate.",
+      "search_placeholder": "Search by keyword or standard code...",
+      "no_results": "No standards found. Try a different search or grade.",
+      "selected_count": "{{count}} selected",
+      "grade_filter": "Grade",
+      "type_filter": "Standards Type",
+      "select_to_continue": "Select at least one standard to continue"
+    },
+
+    "step3": {
+      "title": "Enter your lesson plan",
+      "subtitle": "Type, upload, or dictate your lesson. You can edit before continuing.",
+      "tab_type": "Type",
+      "tab_upload": "Upload File",
+      "tab_speak": "Voice",
+      "type_placeholder": "Write or paste your lesson plan here...\n\nInclude your objectives, activities, materials, and any assessment you have in mind. The more detail you provide, the better the analysis.",
+      "upload_drop": "Drop your .docx or .pdf file here",
+      "upload_browse": "or click to browse files",
+      "upload_parsing": "Parsing your file...",
+      "upload_success": "File parsed! Review and edit below:",
+      "speak_start": "Tap to start recording",
+      "speak_stop": "Tap to stop recording",
+      "speak_transcribing": "Transcribing your recording...",
+      "speak_review": "Transcript ready — review and edit:",
+      "recording_time": "Recording: {{seconds}}s"
+    },
+
+    "step4": {
+      "title_loading": "Analyzing your lesson...",
+      "title_done": "Here's your coverage report",
+      "covered": "Well Covered",
+      "partial": "Partially Covered",
+      "missing": "Not Yet Addressed",
+      "msg1": "Reviewing your lesson...",
+      "msg2": "Checking standard coverage...",
+      "msg3": "Evaluating each learning objective...",
+      "msg4": "Almost done..."
+    },
+
+    "step5": {
+      "title": "Here are some ideas to strengthen your lesson",
+      "subtitle": "Accept, edit, or dismiss each suggestion. Add your own ideas at the bottom.",
+      "accept": "Add to lesson",
+      "edit": "Edit",
+      "dismiss": "Dismiss",
+      "accepted": "Added ✓",
+      "dismissed": "Dismissed",
+      "time": "{{time}}",
+      "materials": "{{materials}}",
+      "add_own": "Add your own ideas",
+      "add_own_placeholder": "Type any additional activities, notes, or ideas you want to include...",
+      "msg1": "Generating activity ideas...",
+      "msg2": "Tailoring suggestions to your grade level...",
+      "msg3": "Almost ready..."
+    },
+
+    "step6": {
+      "title": "Review your complete lesson",
+      "subtitle": "Make any final edits. The coverage indicator updates as you type.",
+      "coverage_sidebar": "Standards Coverage",
+      "coverage_hint": "Coverage updates automatically every 30 seconds of inactivity.",
+      "finalize": "Finalize Lesson",
+      "checking": "Checking..."
+    },
+
+    "step7": {
+      "title": "Your lesson is ready!",
+      "title_saved": "Lesson saved! 🎉",
+      "subtitle": "Preview your formatted lesson, export to PDF, and save to your archive.",
+      "export_pdf": "Export PDF",
+      "save_archive": "Save to Archive",
+      "saving": "Saving...",
+      "saved": "Saved to archive!",
+      "new_lesson": "Start a New Lesson",
+      "go_archive": "Go to My Archive",
+      "msg1": "Formatting your lesson plan...",
+      "msg2": "Organizing sections...",
+      "msg3": "Almost done..."
+    }
   }
 }

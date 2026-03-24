@@ -6,6 +6,9 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
 const standardsRoutes = require('./routes/standards');
+const analysisRoutes = require('./routes/analysis');
+const transcribeRoutes = require('./routes/transcribe');
+const lessonsRoutes = require('./routes/lessons');
 
 const app = express();
 
@@ -39,6 +42,9 @@ app.use('/api/auth/', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/standards', standardsRoutes);
+app.use('/api/analysis', analysisRoutes);
+app.use('/api/transcribe', transcribeRoutes);
+app.use('/api/lessons', lessonsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

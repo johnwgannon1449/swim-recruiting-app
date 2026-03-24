@@ -45,3 +45,22 @@
     @apply text-sm text-danger-600 mt-1;
   }
 }
+
+/* Waveform animation for voice recording */
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+  50%       { transform: scaleY(1);   opacity: 1;   }
+}
+.animate-waveform {
+  animation: waveform 0.8s ease-in-out infinite;
+}
+
+/* Prose styles for lesson preview */
+.prose h1 { @apply text-2xl font-bold; }
+.prose h2 { @apply text-lg font-bold; }
+.prose h3 { @apply text-base font-semibold; }
+.prose p  { @apply my-1 leading-relaxed; }
+
+/* Line clamp utility */
+.line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
