@@ -4,8 +4,6 @@ import { useWizard } from '../../contexts/WizardContext';
 import api, { withRetry } from '../../utils/api';
 import WizardTooltip from '../WizardTooltip';
 
-const LOADING_MESSAGES_KEY = 'wizard.step4.loading_messages';
-
 const STATUS_CONFIG = {
   covered: {
     icon: '✅',
@@ -40,7 +38,7 @@ function RotatingMessage({ messages }) {
     return () => clearInterval(id);
   }, [messages.length]);
   return (
-    <p className="text-gray-500 text-sm transition-all duration-500 min-h-5">
+    <p className="text-sm transition-all duration-500 min-h-5" style={{ color: '#64748B' }}>
       {messages[idx]}
     </p>
   );
@@ -104,9 +102,58 @@ export default function Step4GapAnalysis() {
 
   const hasImprovements = grouped.partial.length + grouped.missing.length > 0;
 
+  // Build compact summary bullets (max 5)
+  function buildSummaryBullets() {
+    const bullets = [];
+
+    if (grouped.covered.length > 0) {
+      const codes = grouped.covered.slice(0, 3).map((i) => i.standard_code).join(', ');
+      const extra = grouped.covered.length > 3 ? ` +${grouped.covered.length - 3} more` : '';
+      bullets.push({
+        icon: '✓',
+        color: '#16a34a',
+        label: 'Strengths',
+        text: `Your lesson covers ${grouped.covered.length} standard${grouped.covered.length !== 1 ? 's' : ''} well: ${codes}${extra}.`,
+      });
+    }
+
+    if (grouped.partial.length > 0) {
+      const codes = grouped.partial.map((i) => i.standard_code).join(', ');
+      bullets.push({
+        icon: '⚠',
+        color: '#d97706',
+        label: 'Partially covered',
+        text: `${codes} — addressed but could be strengthened.`,
+      });
+    }
+
+    if (grouped.missing.length > 0) {
+      const codes = grouped.missing.map((i) => i.standard_code).join(', ');
+      bullets.push({
+        icon: '✗',
+        color: '#dc2626',
+        label: 'Gaps to address',
+        text: `${codes} — not yet covered in this lesson.`,
+      });
+    }
+
+    // One focused recommendation
+    const topGap = grouped.missing[0] || grouped.partial[0];
+    if (topGap?.explanation) {
+      bullets.push({
+        icon: '→',
+        color: '#1e3a5f',
+        label: 'Focus area',
+        text: topGap.explanation,
+      });
+    }
+
+    return bullets;
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">
+      <h1 className="text-2xl font-bold mb-1" style={{ color: '#1E293B' }}>
         {loading ? t('wizard.step4.title_loading') : t('wizard.step4.title_done')}
       </h1>
 
@@ -114,7 +161,7 @@ export default function Step4GapAnalysis() {
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-6">
           <div className="relative w-16 h-16">
-            <div className="absolute inset-0 border-4 border-primary-200 rounded-full" />
+            <div className="absolute inset-0 border-4 border-primary-100 rounded-full" />
             <div className="absolute inset-0 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
           </div>
           <RotatingMessage messages={loadingMessages} />
@@ -136,66 +183,49 @@ export default function Step4GapAnalysis() {
       {/* Results */}
       {!loading && !error && gapAnalysis && (
         <div>
-          {/* Summary bar */}
+          {/* Summary count badges */}
           <WizardTooltip
             id="step4-results"
             title="Reading your gap analysis"
             body="✅ Covered means the standard is well addressed. ⚠️ Partial means it's touched on but could be stronger. ❌ Missing means it needs attention. Continue to get activity suggestions."
             position="bottom-left"
           >
-            <div className="flex gap-4 mb-6 flex-wrap">
-            {Object.entries(grouped).map(([status, items]) => {
-              const cfg = STATUS_CONFIG[status];
-              return (
-                <div key={status} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${cfg.bg} border ${cfg.border}`}>
-                  <span>{cfg.icon}</span>
-                  <span className={`text-sm font-medium ${cfg.text}`}>
-                    {items.length} {t(cfg.label)}
-                  </span>
-                </div>
-              );
-            })}
+            <div className="flex gap-3 mb-6 flex-wrap">
+              {Object.entries(grouped).map(([status, items]) => {
+                const cfg = STATUS_CONFIG[status];
+                return (
+                  <div key={status} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${cfg.bg} border ${cfg.border}`}>
+                    <span>{cfg.icon}</span>
+                    <span className={`text-sm font-medium ${cfg.text}`}>
+                      {items.length} {t(cfg.label)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </WizardTooltip>
 
-          {/* Sections */}
-          {['missing', 'partial', 'covered'].map((status) => {
-            const items = grouped[status];
-            if (!items.length) return null;
-            const cfg = STATUS_CONFIG[status];
-
-            return (
-              <div key={status} className="mb-8">
-                <h2 className={`text-base font-semibold mb-3 flex items-center gap-2 ${cfg.text}`}>
-                  <span>{cfg.icon}</span> {t(cfg.label)}
-                </h2>
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const std = selectedStandards.find((s) => s.code === item.standard_code);
-                    return (
-                      <div key={item.standard_code} className={`p-4 rounded-xl border ${cfg.bg} ${cfg.border}`}>
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <span className="text-xs font-mono font-semibold bg-white bg-opacity-70 px-2 py-0.5 rounded">
-                            {item.standard_code}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.badge}`}>
-                            {Math.round((item.confidence_score || 0.8) * 100)}% confidence
-                          </span>
-                        </div>
-                        {std && (
-                          <p className="text-xs text-gray-500 mt-1 mb-2 line-clamp-1">{std.description}</p>
-                        )}
-                        <p className={`text-sm ${cfg.text} leading-relaxed`}>{item.explanation}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* High-level summary card */}
+          <div className="bg-white rounded-xl p-6 mb-6 space-y-4"
+            style={{ border: '1px solid #E8EEF5', boxShadow: '0 1px 4px rgba(30,58,95,0.07)' }}>
+            {buildSummaryBullets().map((bullet, i) => (
+              <div key={i} className="flex gap-3">
+                <span
+                  className="mt-0.5 text-base font-bold flex-shrink-0 w-5 text-center"
+                  style={{ color: bullet.color }}
+                >
+                  {bullet.icon}
+                </span>
+                <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
+                  <span className="font-semibold" style={{ color: '#1E293B' }}>{bullet.label}: </span>
+                  {bullet.text}
+                </p>
               </div>
-            );
-          })}
+            ))}
+          </div>
 
-          {/* Continue */}
-          <div className="mt-4 space-y-2">
+          {/* Actions */}
+          <div className="space-y-2">
             <button onClick={handleContinue} className="btn-primary w-full py-3 text-base">
               {hasImprovements ? `${t('wizard.next')} — See Recommendations →` : `${t('wizard.next')} →`}
             </button>

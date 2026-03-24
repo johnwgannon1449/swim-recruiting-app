@@ -53,6 +53,13 @@ function WizardInner() {
 
       {/* Active step */}
       <StepComponent />
+
+      {/* Room4 watermark */}
+      <div className="mt-12 mb-2 text-center">
+        <span className="text-xs font-medium tracking-widest" style={{ color: '#CBD5E1' }}>
+          Room<span style={{ color: '#FCD34D', opacity: 0.6 }}>4</span>
+        </span>
+      </div>
     </div>
   );
 }

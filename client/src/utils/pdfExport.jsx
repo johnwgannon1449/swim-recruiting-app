@@ -15,8 +15,8 @@ import {
 } from '@react-pdf/renderer';
 
 // ── Colour palette ──────────────────────────────────────────────────────────
-const BRAND = '#1d4ed8';    // blue-700
-const BRAND_LIGHT = '#dbeafe'; // blue-100
+const BRAND = '#1e3a5f';    // Room4 deep slate blue
+const BRAND_LIGHT = '#d6e0ee'; // Room4 primary-100
 const HEADING = '#1e293b';  // slate-800
 const BODY = '#374151';     // gray-700
 const MUTED = '#9ca3af';    // gray-400
@@ -392,7 +392,7 @@ function LessonPDF({ formattedText, teacherInfo }) {
       title={docTitle}
       author={meta.teacher || 'Teacher'}
       subject="Lesson Plan"
-      creator="Lesson Plan Analyzer"
+      creator="Room4"
     >
       <Page size="LETTER" style={styles.page} wrap>
         {/* Top brand bar */}
@@ -400,7 +400,7 @@ function LessonPDF({ formattedText, teacherInfo }) {
 
         {/* Document title */}
         <Text style={styles.docTitle}>{docTitle}</Text>
-        <Text style={styles.docSubtitle}>Lesson Plan · Lesson Plan Analyzer</Text>
+        <Text style={styles.docSubtitle}>Room4 · Lesson planning, elevated.</Text>
         <View style={styles.titleRule} />
 
         {/* Metadata block */}

@@ -10,13 +10,40 @@ function RotatingMessage({ messages }) {
     const id = setInterval(() => setIdx((i) => (i + 1) % messages.length), 2000);
     return () => clearInterval(id);
   }, [messages.length]);
-  return <p className="text-gray-500 text-sm min-h-5">{messages[idx]}</p>;
+  return <p className="text-sm min-h-5" style={{ color: '#64748B' }}>{messages[idx]}</p>;
+}
+
+function CoverageBar({ gapAnalysis, selectedStandards }) {
+  const total = selectedStandards?.length || 0;
+  const covered = gapAnalysis?.filter((r) => r.coverage_status === 'covered').length || 0;
+  const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+
+  return (
+    <div className="mb-7">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium" style={{ color: '#374151' }}>Standards Coverage</span>
+        <span className="text-sm font-semibold tabular-nums" style={{ color: '#16a34a' }}>{pct}%</span>
+      </div>
+      <div
+        className="w-full rounded-full overflow-hidden"
+        style={{ height: 14, backgroundColor: '#E2E8F0' }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: '#22C55E' }}
+        />
+      </div>
+      <p className="text-xs mt-1.5" style={{ color: '#94a3b8' }}>
+        {covered} of {total} standard{total !== 1 ? 's' : ''} covered going into this step
+      </p>
+    </div>
+  );
 }
 
 export default function Step5Recommendations() {
   const { t } = useTranslation();
   const { state, dispatch } = useWizard();
-  const { lessonText, selectedClass, gapAnalysis, recommendations } = state;
+  const { lessonText, selectedClass, gapAnalysis, recommendations, selectedStandards } = state;
 
   const [loading, setLoading] = useState(recommendations.length === 0);
   const [error, setError] = useState('');
@@ -31,7 +58,6 @@ export default function Step5Recommendations() {
 
   useEffect(() => {
     if (recommendations.length > 0 || hasFetched.current) return;
-    // If no partial/missing, skip directly
     const needsWork = gapAnalysis?.filter(
       (r) => r.coverage_status === 'partial' || r.coverage_status === 'missing'
     );
@@ -57,7 +83,7 @@ export default function Step5Recommendations() {
       );
       const recs = res.data.recommendations.map((r) => ({
         ...r,
-        _status: 'pending', // pending | accepted | edited | dismissed
+        _status: 'pending',
         _editedText: '',
         _editing: false,
       }));
@@ -76,14 +102,10 @@ export default function Step5Recommendations() {
   function toggleEdit(idx) {
     const rec = recommendations[idx];
     if (!rec._editing) {
-      // Seed editor with current description
       dispatch({
         type: 'UPDATE_RECOMMENDATION',
         index: idx,
-        payload: {
-          _editing: true,
-          _editedText: rec._editedText || rec.description,
-        },
+        payload: { _editing: true, _editedText: rec._editedText || rec.description },
       });
     } else {
       dispatch({
@@ -101,7 +123,6 @@ export default function Step5Recommendations() {
   function handleContinue() {
     dispatch({ type: 'SET_CUSTOM_ADDITIONS', payload: customAdditions });
 
-    // Build finalized text: original + accepted recommendations
     const accepted = recommendations.filter(
       (r) => r._status === 'accepted' || r._status === 'edited'
     );
@@ -129,26 +150,23 @@ export default function Step5Recommendations() {
     (r) => r.coverage_status === 'partial' || r.coverage_status === 'missing'
   ) || [];
 
-  // Group recommendations by standard_code
-  const recsByStandard = {};
-  for (const rec of recommendations) {
-    if (!recsByStandard[rec.standard_code]) recsByStandard[rec.standard_code] = [];
-    recsByStandard[rec.standard_code].push(rec);
-  }
-  const recIndexOffset = {}; // track global index per rec
-  let gi = 0;
   const recsWithIndex = recommendations.map((r, i) => ({ ...r, _globalIndex: i }));
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('wizard.step5.title')}</h1>
-      <p className="text-gray-500 mb-6">{t('wizard.step5.subtitle')}</p>
+      <h1 className="text-2xl font-bold mb-1" style={{ color: '#1E293B' }}>{t('wizard.step5.title')}</h1>
+      <p className="mb-6" style={{ color: '#64748B' }}>{t('wizard.step5.subtitle')}</p>
+
+      {/* Coverage progress bar */}
+      {!loading && gapAnalysis?.length > 0 && (
+        <CoverageBar gapAnalysis={gapAnalysis} selectedStandards={selectedStandards} />
+      )}
 
       {/* Loading */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-6">
           <div className="relative w-16 h-16">
-            <div className="absolute inset-0 border-4 border-primary-200 rounded-full" />
+            <div className="absolute inset-0 border-4 border-primary-100 rounded-full" />
             <div className="absolute inset-0 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
           </div>
           <RotatingMessage messages={loadingMessages} />
@@ -167,24 +185,25 @@ export default function Step5Recommendations() {
 
       {/* No improvements needed */}
       {!loading && !error && needsWork.length === 0 && (
-        <div className="card text-center py-10 mb-6">
+        <div className="text-center py-10 mb-6 bg-white rounded-xl"
+          style={{ border: '1px solid #E8EEF5', boxShadow: '0 1px 4px rgba(30,58,95,0.07)' }}>
           <div className="text-4xl mb-3">🌟</div>
-          <p className="font-semibold text-gray-800">Your lesson already covers all selected standards well!</p>
-          <p className="text-sm text-gray-500 mt-1">You can still add your own ideas below, or continue to review.</p>
+          <p className="font-semibold" style={{ color: '#1E293B' }}>Your lesson already covers all selected standards well!</p>
+          <p className="text-sm mt-1" style={{ color: '#64748B' }}>You can still add your own ideas below, or continue to review.</p>
         </div>
       )}
 
       {/* Recommendation cards */}
       {!loading && !error && recommendations.length > 0 && (
-        <div className="space-y-6 mb-8">
+        <div className="space-y-7 mb-8">
           {needsWork.map((gap) => {
             const recs = recsWithIndex.filter((r) => r.standard_code === gap.standard_code);
             if (!recs.length) return null;
 
             return (
               <div key={gap.standard_code}>
-                <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                  <span className="font-mono text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded text-xs">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#64748B' }}>
+                  <span className="font-mono bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded text-xs">
                     {gap.standard_code}
                   </span>
                   <span>{gap.coverage_status === 'missing' ? '❌ Missing' : '⚠️ Partial'}</span>
@@ -199,19 +218,23 @@ export default function Step5Recommendations() {
                     return (
                       <div
                         key={idx}
-                        className={`border rounded-xl transition-all
-                          ${isDismissed ? 'opacity-40 border-gray-200 bg-gray-50' : ''}
-                          ${isAccepted ? 'border-success-300 bg-success-50' : ''}
-                          ${rec._status === 'pending' ? 'border-gray-200 bg-white' : ''}`}
+                        className="rounded-xl transition-all"
+                        style={{
+                          border: `1px solid ${isDismissed ? '#e5e7eb' : isAccepted ? '#86efac' : '#E8EEF5'}`,
+                          backgroundColor: isDismissed ? '#f9fafb' : isAccepted ? '#f0fdf4' : '#ffffff',
+                          opacity: isDismissed ? 0.5 : 1,
+                          boxShadow: '0 1px 4px rgba(30,58,95,0.05)',
+                        }}
                       >
                         <div className="p-4">
                           <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">{rec.activity_title}</h4>
+                            <h4 className="font-semibold text-sm" style={{ color: '#1E293B' }}>{rec.activity_title}</h4>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {isDismissed ? (
                                 <button
                                   onClick={() => setRecStatus(idx, 'pending')}
-                                  className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 border rounded"
+                                  className="text-xs px-2 py-1 border rounded"
+                                  style={{ color: '#9ca3af', borderColor: '#e5e7eb' }}
                                 >
                                   Undo
                                 </button>
@@ -257,12 +280,12 @@ export default function Step5Recommendations() {
                               onChange={(e) => handleEditText(idx, e.target.value)}
                             />
                           ) : (
-                            <p className="text-sm text-gray-700 leading-relaxed">
+                            <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
                               {rec._status === 'edited' && rec._editedText ? rec._editedText : rec.description}
                             </p>
                           )}
 
-                          <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-500">
+                          <div className="flex flex-wrap gap-3 mt-3 text-xs" style={{ color: '#94a3b8' }}>
                             <span>⏱ {t('wizard.step5.time', { time: rec.time_estimate })}</span>
                             {materialsText && (
                               <span>📦 {t('wizard.step5.materials', { materials: materialsText })}</span>

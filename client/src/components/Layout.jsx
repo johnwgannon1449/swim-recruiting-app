@@ -24,12 +24,15 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header
+        className="bg-white sticky top-0 z-10"
+        style={{ borderBottom: '1px solid #E8EEF5', boxShadow: '0 1px 4px rgba(30,58,95,0.06)' }}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <span className="text-2xl">📚</span>
-            <span className="font-semibold text-gray-900 hidden sm:block">
-              {t('app_name')}
+          {/* Room4 wordmark */}
+          <Link to="/dashboard" className="flex items-center select-none">
+            <span className="text-2xl font-bold tracking-tight" style={{ color: '#1E3A5F' }}>
+              Room<span style={{ color: '#F59E0B' }}>4</span>
             </span>
           </Link>
 
@@ -37,7 +40,7 @@ export default function Layout({ children }) {
             {/* Language toggle */}
             <button
               onClick={toggleLanguage}
-              className="text-sm text-gray-500 hover:text-gray-700 font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+              className="text-sm font-medium px-2 py-1 rounded transition-colors text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             >
               {t('language_toggle')}
             </button>
@@ -47,26 +50,23 @@ export default function Layout({ children }) {
                 <nav className="hidden sm:flex items-center gap-4 text-sm font-medium">
                   <Link
                     to="/dashboard"
-                    className={`hover:text-primary-600 transition-colors ${
-                      location.pathname === '/dashboard' ? 'text-primary-600' : 'text-gray-600'
+                    className={`transition-colors hover:text-primary-600 ${
+                      location.pathname === '/dashboard' ? 'text-primary-600' : 'text-gray-500'
                     }`}
                   >
                     {t('nav.dashboard')}
                   </Link>
                   <Link
                     to="/archive"
-                    className={`hover:text-primary-600 transition-colors ${
-                      location.pathname === '/archive' ? 'text-primary-600' : 'text-gray-600'
+                    className={`transition-colors hover:text-primary-600 ${
+                      location.pathname === '/archive' ? 'text-primary-600' : 'text-gray-500'
                     }`}
                   >
                     {t('nav.archive')}
                   </Link>
                 </nav>
 
-                <button
-                  onClick={handleLogout}
-                  className="btn-secondary text-sm"
-                >
+                <button onClick={handleLogout} className="btn-secondary text-sm">
                   {t('nav.sign_out')}
                 </button>
               </>
