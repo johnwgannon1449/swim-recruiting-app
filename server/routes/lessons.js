@@ -2,10 +2,12 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const auth = require('../middleware/auth');
+const storage = require('../utils/storageClient');
+const { generateLessonPDF } = require('../utils/pdfGenerator');
 
 const router = express.Router();
 
-// POST /api/lessons — save a finalized lesson
+// POST /api/lessons — save a finalized lesson, generate PDF, upload to S3
 router.post(
   '/',
   auth,
@@ -35,13 +37,28 @@ router.post(
       metadata = {},
     } = req.body;
 
+    // ── 1. Generate PDF and upload to S3 if configured ───────────────────
+    let pdf_url = null;
+    if (finalized_text && storage.isConfigured()) {
+      try {
+        const pdfBuffer = await generateLessonPDF(finalized_text);
+        const key = `pdfs/user-${req.user.id}/lesson-${Date.now()}.pdf`;
+        await storage.upload(pdfBuffer, key, 'application/pdf');
+        pdf_url = await storage.getPresignedUrl(key, 60 * 60 * 24 * 7); // 7-day URL
+      } catch (pdfErr) {
+        // PDF gen/upload failure is non-fatal — save lesson without PDF
+        console.error('PDF generation/upload failed:', pdfErr.message);
+      }
+    }
+
+    // ── 2. Save lesson to DB ─────────────────────────────────────────────
     try {
       const result = await pool.query(
         `INSERT INTO lessons
           (user_id, class_id, title, grade_level, subject, standards_type,
-           standards_covered, original_text, finalized_text, metadata)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         RETURNING id, title, grade_level, subject, standards_type, standards_covered, created_at`,
+           standards_covered, original_text, finalized_text, pdf_url, metadata)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         RETURNING id, title, grade_level, subject, standards_type, standards_covered, pdf_url, created_at`,
         [
           req.user.id,
           class_id || null,
@@ -52,6 +69,7 @@ router.post(
           JSON.stringify(standards_covered),
           original_text,
           finalized_text,
+          pdf_url,
           JSON.stringify(metadata),
         ]
       );
@@ -127,7 +145,7 @@ router.get(
       const lessonsRes = await pool.query(
         `SELECT l.id, l.title, l.grade_level, l.subject, l.standards_type,
                 l.standards_covered, l.class_id, c.nickname as class_nickname,
-                l.created_at
+                l.pdf_url, l.created_at
          FROM lessons l
          LEFT JOIN classes c ON c.id = l.class_id
          WHERE ${where}
@@ -136,8 +154,28 @@ router.get(
         [...params, limit, offset]
       );
 
+      // If storage is configured, refresh presigned URLs that may be near expiry
+      // (This is a lightweight refresh — only lessons with pdf_url need refreshing)
+      const lessons = lessonsRes.rows;
+      if (storage.isConfigured()) {
+        await Promise.all(
+          lessons
+            .filter((l) => l.pdf_url)
+            .map(async (lesson) => {
+              try {
+                // Extract the key from the current URL (works for both S3 and R2)
+                const urlObj = new URL(lesson.pdf_url);
+                const key = urlObj.pathname.replace(/^\/[^/]+\//, ''); // strip bucket from path
+                lesson.pdf_url = await storage.getPresignedUrl(key, 3600);
+              } catch {
+                // Keep the existing URL if refresh fails
+              }
+            })
+        );
+      }
+
       res.json({
-        lessons: lessonsRes.rows,
+        lessons,
         pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       });
     } catch (err) {
@@ -147,7 +185,7 @@ router.get(
   }
 );
 
-// GET /api/lessons/:id — get a single lesson
+// GET /api/lessons/:id — get a single lesson (owner-gated)
 router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query(
@@ -158,7 +196,18 @@ router.get('/:id', auth, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Lesson not found.' });
-    res.json({ lesson: result.rows[0] });
+
+    const lesson = result.rows[0];
+    // Refresh presigned URL if storage is configured
+    if (lesson.pdf_url && storage.isConfigured()) {
+      try {
+        const urlObj = new URL(lesson.pdf_url);
+        const key = urlObj.pathname.replace(/^\/[^/]+\//, '');
+        lesson.pdf_url = await storage.getPresignedUrl(key, 3600);
+      } catch {}
+    }
+
+    res.json({ lesson });
   } catch (err) {
     console.error('Get lesson error:', err);
     res.status(500).json({ error: 'Could not load lesson.' });

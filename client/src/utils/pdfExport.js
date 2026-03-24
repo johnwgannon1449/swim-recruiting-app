@@ -1,129 +1,491 @@
 /**
- * Generate and download a PDF from formatted lesson text (markdown-ish).
- * Uses jsPDF for vector text output.
+ * Generate and download a beautiful PDF from formatted lesson text.
+ * Uses @react-pdf/renderer for rich layout control and crisp typography.
  */
-export async function exportLessonPDF(formattedText, filename = 'lesson-plan.pdf') {
-  const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginL = 20;
-  const marginR = 20;
-  const marginT = 20;
-  const marginB = 25;
-  const maxW = pageWidth - marginL - marginR;
+import React from 'react';
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Font,
+  pdf,
+} from '@react-pdf/renderer';
 
-  let y = marginT;
+// ── Colour palette ──────────────────────────────────────────────────────────
+const BRAND = '#1d4ed8';    // blue-700
+const BRAND_LIGHT = '#dbeafe'; // blue-100
+const HEADING = '#1e293b';  // slate-800
+const BODY = '#374151';     // gray-700
+const MUTED = '#9ca3af';    // gray-400
+const RULE = '#e5e7eb';     // gray-200
+const SUCCESS_BG = '#f0fdf4';
+const WARNING_BG = '#fffbeb';
+const DANGER_BG = '#fef2f2';
 
-  function checkPage(needed = 8) {
-    if (y + needed > pageHeight - marginB) {
-      doc.addPage();
-      y = marginT;
+// ── Styles ───────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  page: {
+    fontFamily: 'Helvetica',
+    paddingTop: 50,
+    paddingBottom: 50,
+    paddingLeft: 54,
+    paddingRight: 54,
+    backgroundColor: '#ffffff',
+  },
+
+  // Header bar at the top of each page
+  pageHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 8,
+    backgroundColor: BRAND,
+  },
+
+  // Footer
+  footer: {
+    position: 'absolute',
+    bottom: 18,
+    left: 54,
+    right: 54,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 7.5,
+    color: MUTED,
+  },
+
+  // Document title
+  docTitle: {
+    fontSize: 22,
+    fontFamily: 'Helvetica-Bold',
+    color: BRAND,
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  docSubtitle: {
+    fontSize: 10,
+    color: MUTED,
+    marginBottom: 12,
+  },
+  titleRule: {
+    borderBottomWidth: 2,
+    borderBottomColor: BRAND,
+    marginBottom: 18,
+  },
+
+  // Metadata row (teacher, class, date)
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 18,
+    backgroundColor: BRAND_LIGHT,
+    borderRadius: 6,
+    padding: 10,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    gap: 4,
+    marginRight: 14,
+  },
+  metaLabel: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: BRAND,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  metaValue: {
+    fontSize: 8.5,
+    color: HEADING,
+  },
+
+  // Standards chips row
+  standardsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 18,
+  },
+  standardChip: {
+    backgroundColor: BRAND_LIGHT,
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  standardChipText: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: BRAND,
+    letterSpacing: 0.3,
+  },
+
+  // Sections
+  h1: {
+    fontSize: 18,
+    fontFamily: 'Helvetica-Bold',
+    color: BRAND,
+    marginTop: 8,
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  h2: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: HEADING,
+    marginTop: 14,
+    marginBottom: 4,
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
+  },
+  h3: {
+    fontSize: 10.5,
+    fontFamily: 'Helvetica-Bold',
+    color: HEADING,
+    marginTop: 9,
+    marginBottom: 2,
+  },
+
+  // Body text
+  bodyText: {
+    fontSize: 9.5,
+    color: BODY,
+    lineHeight: 1.55,
+    marginBottom: 2,
+  },
+  bodyTextBold: {
+    fontSize: 9.5,
+    fontFamily: 'Helvetica-Bold',
+    color: HEADING,
+  },
+
+  // Bullet points
+  bulletRow: {
+    flexDirection: 'row',
+    marginBottom: 2,
+    paddingLeft: 8,
+  },
+  bulletDot: {
+    fontSize: 9.5,
+    color: BRAND,
+    marginRight: 5,
+    marginTop: 1,
+  },
+  bulletText: {
+    fontSize: 9.5,
+    color: BODY,
+    lineHeight: 1.5,
+    flex: 1,
+  },
+
+  // Numbered items
+  numberedRow: {
+    flexDirection: 'row',
+    marginBottom: 2,
+    paddingLeft: 8,
+  },
+  numberedLabel: {
+    fontSize: 9.5,
+    fontFamily: 'Helvetica-Bold',
+    color: BRAND,
+    marginRight: 5,
+    minWidth: 16,
+  },
+
+  // Horizontal rule
+  hrule: {
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
+    marginVertical: 10,
+  },
+
+  // Spacer
+  spacer: {
+    marginBottom: 4,
+  },
+});
+
+// ── Parse a single line of markdown-ish text ─────────────────────────────────
+
+/**
+ * Split text with **bold** markers into segments for rendering.
+ */
+function parseBoldSegments(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return { bold: true, text: part.slice(2, -2) };
     }
+    return { bold: false, text: part.replace(/\*([^*]+)\*/g, '$1') };
+  });
+}
+
+function InlineText({ text, baseStyle }) {
+  const segments = parseBoldSegments(text);
+  if (segments.every((s) => !s.bold)) {
+    return <Text style={baseStyle}>{text.replace(/\*([^*]+)\*/g, '$1')}</Text>;
   }
+  return (
+    <Text style={baseStyle}>
+      {segments.map((seg, i) =>
+        seg.bold ? (
+          <Text key={i} style={{ fontFamily: 'Helvetica-Bold' }}>{seg.text}</Text>
+        ) : (
+          seg.text
+        )
+      )}
+    </Text>
+  );
+}
 
-  function addText(text, opts = {}) {
-    const {
-      fontSize = 10,
-      fontStyle = 'normal',
-      color = [40, 40, 40],
-      indent = 0,
-      lineGap = 2,
-    } = opts;
+// ── Parse formatted text into React-PDF elements ────────────────────────────
 
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', fontStyle);
-    doc.setTextColor(...color);
+function renderLines(lines) {
+  const elements = [];
+  let i = 0;
 
-    const lines = doc.splitTextToSize(text, maxW - indent);
-    for (const line of lines) {
-      checkPage();
-      doc.text(line, marginL + indent, y);
-      y += fontSize * 0.352778 + lineGap; // pt to mm
-    }
-    y += 1; // small gap after block
-  }
-
-  function addHRule() {
-    checkPage(4);
-    doc.setDrawColor(200, 200, 200);
-    doc.line(marginL, y, pageWidth - marginR, y);
-    y += 4;
-  }
-
-  // Parse and render the formatted text
-  const lines = formattedText.split('\n');
-
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd();
+  while (i < lines.length) {
+    const raw = lines[i];
+    const line = raw.trimEnd();
 
     if (line.startsWith('# ')) {
-      checkPage(14);
-      y += 3;
-      addText(line.slice(2), { fontSize: 18, fontStyle: 'bold', color: [30, 64, 175] });
-      addHRule();
+      elements.push(
+        <Text key={i} style={styles.h1}>{line.slice(2)}</Text>
+      );
     } else if (line.startsWith('## ')) {
-      checkPage(10);
-      y += 4;
-      addText(line.slice(3), { fontSize: 13, fontStyle: 'bold', color: [30, 64, 175] });
-      y += 1;
+      elements.push(
+        <Text key={i} style={styles.h2}>{line.slice(3)}</Text>
+      );
     } else if (line.startsWith('### ')) {
-      checkPage(8);
-      y += 2;
-      addText(line.slice(4), { fontSize: 11, fontStyle: 'bold', color: [55, 65, 81] });
+      elements.push(
+        <Text key={i} style={styles.h3}>{line.slice(4)}</Text>
+      );
     } else if (line.startsWith('- **') || line.startsWith('* **')) {
-      // Bold list item like "- **Teacher:** John"
+      // Bold label line: "- **Teacher:** John Smith"
       const content = line.replace(/^[-*]\s*/, '');
       const boldMatch = content.match(/^\*\*(.+?)\*\*:?\s*(.*)/);
       if (boldMatch) {
-        checkPage(6);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(40, 40, 40);
-        const labelW = doc.getTextWidth(boldMatch[1] + ': ');
-        doc.text(boldMatch[1] + ':', marginL + 4, y);
-        doc.setFont('helvetica', 'normal');
-        const rest = doc.splitTextToSize(boldMatch[2], maxW - 4 - labelW);
-        doc.text(rest[0] || '', marginL + 4 + labelW, y);
-        y += 6;
-        for (let i = 1; i < rest.length; i++) {
-          checkPage();
-          doc.text(rest[i], marginL + 4 + labelW, y);
-          y += 5.5;
-        }
+        elements.push(
+          <View key={i} style={styles.bulletRow}>
+            <Text style={styles.bulletDot}>•</Text>
+            <Text style={styles.bulletText}>
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{boldMatch[1]}: </Text>
+              {boldMatch[2]}
+            </Text>
+          </View>
+        );
       } else {
-        addText('• ' + content, { indent: 4 });
+        elements.push(
+          <View key={i} style={styles.bulletRow}>
+            <Text style={styles.bulletDot}>•</Text>
+            <InlineText text={content} baseStyle={styles.bulletText} />
+          </View>
+        );
       }
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
-      addText('• ' + line.slice(2), { indent: 4 });
-    } else if (line.match(/^\d+\. /)) {
-      addText(line, { indent: 4 });
+      elements.push(
+        <View key={i} style={styles.bulletRow}>
+          <Text style={styles.bulletDot}>•</Text>
+          <InlineText text={line.slice(2)} baseStyle={styles.bulletText} />
+        </View>
+      );
+    } else if (/^\d+\.\s/.test(line)) {
+      const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+      elements.push(
+        <View key={i} style={styles.numberedRow}>
+          <Text style={styles.numberedLabel}>{numMatch[1]}.</Text>
+          <InlineText text={numMatch[2]} baseStyle={styles.bulletText} />
+        </View>
+      );
     } else if (line === '---') {
-      addHRule();
+      elements.push(<View key={i} style={styles.hrule} />);
     } else if (line === '') {
-      y += 2;
+      elements.push(<View key={i} style={styles.spacer} />);
     } else {
-      // Strip inline bold (**text**) for plain rendering
-      const plain = line.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
-      addText(plain);
+      elements.push(
+        <InlineText key={i} text={line} baseStyle={styles.bodyText} />
+      );
+    }
+
+    i++;
+  }
+
+  return elements;
+}
+
+// ── Extract metadata from the formatted text ─────────────────────────────────
+
+function extractMeta(text) {
+  const meta = { teacher: '', class: '', grade: '', subject: '', date: '', standards: [] };
+  for (const line of text.split('\n')) {
+    const m = line.match(/^-\s+\*\*(.+?)\*\*:?\s*(.*)/);
+    if (!m) continue;
+    const key = m[1].toLowerCase();
+    if (key === 'teacher') meta.teacher = m[2];
+    else if (key === 'class') meta.class = m[2];
+    else if (key === 'grade') meta.grade = m[2];
+    else if (key === 'subject') meta.subject = m[2];
+    else if (key === 'date') meta.date = m[2];
+    else if (key === 'standards' || key.includes('standard')) {
+      // Standards line like "- **Standards:** ELA.5.1, ELA.5.2"
+      meta.standards = m[2].split(',').map((s) => s.trim()).filter(Boolean);
     }
   }
+  return meta;
+}
 
-  // Footer on all pages
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let p = 1; p <= totalPages; p++) {
-    doc.setPage(p);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(150, 150, 150);
-    doc.text(
-      `Page ${p} of ${totalPages} · Generated by Lesson Plan Analyzer`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: 'center' }
-    );
+function extractStandardCodes(text) {
+  // Find any lines like "- ELA.5.1: description" or "- CCSS.ELA-LITERACY..."
+  const codes = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/^-\s+([\w.-]+\.[\w.]+):/);
+    if (m) codes.push(m[1]);
+  }
+  return codes;
+}
+
+// ── PDF Document component ───────────────────────────────────────────────────
+
+function LessonPDF({ formattedText, teacherInfo }) {
+  const lines = formattedText.split('\n');
+
+  // Extract document title from first # line
+  const titleLine = lines.find((l) => l.startsWith('# '));
+  const docTitle = titleLine ? titleLine.slice(2).trim() : 'Lesson Plan';
+
+  // Extract metadata
+  const meta = extractMeta(formattedText);
+  const standardCodes = extractStandardCodes(formattedText);
+
+  // Build footer info
+  const footerLeft = [meta.teacher, meta.class].filter(Boolean).join(' · ');
+  const footerRight = meta.date || new Date().toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
+
+  // Remove the first # title line — it becomes our styled docTitle
+  const bodyLines = lines.filter((l, i) => {
+    if (l.startsWith('# ') && lines.indexOf(l) === lines.findIndex((x) => x.startsWith('# '))) return false;
+    return true;
+  });
+
+  // Remove the meta block (## Lesson Header section) since we render it separately
+  let inHeader = false;
+  const filteredLines = [];
+  for (const line of bodyLines) {
+    if (line === '## Lesson Header') { inHeader = true; continue; }
+    if (inHeader && line.startsWith('## ')) inHeader = false;
+    if (inHeader) continue; // skip the header meta lines
+    filteredLines.push(line);
   }
 
-  doc.save(filename);
+  return (
+    <Document
+      title={docTitle}
+      author={meta.teacher || 'Teacher'}
+      subject="Lesson Plan"
+      creator="Lesson Plan Analyzer"
+    >
+      <Page size="LETTER" style={styles.page} wrap>
+        {/* Top brand bar */}
+        <View style={styles.pageHeader} fixed />
+
+        {/* Document title */}
+        <Text style={styles.docTitle}>{docTitle}</Text>
+        <Text style={styles.docSubtitle}>Lesson Plan · Lesson Plan Analyzer</Text>
+        <View style={styles.titleRule} />
+
+        {/* Metadata block */}
+        {(meta.teacher || meta.class || meta.grade || meta.subject || meta.date) && (
+          <View style={styles.metaRow}>
+            {meta.teacher && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Teacher</Text>
+                <Text style={styles.metaValue}>{meta.teacher}</Text>
+              </View>
+            )}
+            {meta.class && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Class</Text>
+                <Text style={styles.metaValue}>{meta.class}</Text>
+              </View>
+            )}
+            {meta.grade && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Grade</Text>
+                <Text style={styles.metaValue}>{meta.grade}</Text>
+              </View>
+            )}
+            {meta.subject && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Subject</Text>
+                <Text style={styles.metaValue}>{meta.subject}</Text>
+              </View>
+            )}
+            {meta.date && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Date</Text>
+                <Text style={styles.metaValue}>{meta.date}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Standards chips */}
+        {standardCodes.length > 0 && (
+          <View style={styles.standardsRow}>
+            {standardCodes.map((code, i) => (
+              <View key={i} style={styles.standardChip}>
+                <Text style={styles.standardChipText}>{code}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Body content */}
+        {renderLines(filteredLines)}
+
+        {/* Footer on every page */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>{footerLeft}</Text>
+          <Text style={styles.footerText} render={({ pageNumber, totalPages }) =>
+            `Page ${pageNumber} of ${totalPages}`
+          } />
+          <Text style={styles.footerText}>{footerRight}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+// ── Public export function ───────────────────────────────────────────────────
+
+/**
+ * Generate and download a PDF from formatted lesson text.
+ *
+ * @param {string} formattedText - Markdown-formatted lesson plan text
+ * @param {string} filename      - Download filename
+ * @param {object} teacherInfo   - Optional { name, className, date }
+ */
+export async function exportLessonPDF(formattedText, filename = 'lesson-plan.pdf', teacherInfo = {}) {
+  const blob = await pdf(
+    <LessonPDF formattedText={formattedText} teacherInfo={teacherInfo} />
+  ).toBlob();
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

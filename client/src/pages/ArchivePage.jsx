@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
+import { LessonCardSkeleton } from '../components/Skeleton';
 
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const STANDARDS_TYPES = ['ccss-ela', 'ccss-math', 'ngss', 'hss', 'vapa', 'pe', 'cte'];
@@ -16,6 +17,7 @@ export default function ArchivePage() {
 
   const [filterGrade, setFilterGrade] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     fetchLessons(1);
@@ -37,6 +39,8 @@ export default function ArchivePage() {
     }
   }
 
+  const hasActiveFilters = filterGrade || filterType;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -48,33 +52,55 @@ export default function ArchivePage() {
               : 'Your saved lesson plans'}
           </p>
         </div>
-        <Link to="/wizard" className="btn-primary text-sm">
+        <Link to="/wizard" className="btn-primary text-sm min-h-[44px] flex items-center">
           ✨ New Lesson
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <select
-          className="input w-auto text-sm"
-          value={filterGrade}
-          onChange={(e) => setFilterGrade(e.target.value)}
+      {/* Filters — full on tablet+, collapsible on mobile */}
+      <div className="mb-6">
+        {/* Mobile toggle */}
+        <button
+          onClick={() => setFiltersOpen((o) => !o)}
+          className="sm:hidden flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 min-h-[44px] mb-2"
         >
-          <option value="">All Grades</option>
-          {GRADES.map((g) => (
-            <option key={g} value={g}>{t(`grades.${g}`)}</option>
-          ))}
-        </select>
-        <select
-          className="input w-auto text-sm"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-        >
-          <option value="">All Standards</option>
-          {STANDARDS_TYPES.map((s) => (
-            <option key={s} value={s}>{t(`classes.standards_types.${s}`)}</option>
-          ))}
-        </select>
+          🔍 Filter
+          {hasActiveFilters && (
+            <span className="ml-1 w-2 h-2 rounded-full bg-primary-600 inline-block" />
+          )}
+          <span className="ml-auto text-gray-400">{filtersOpen ? '▲' : '▼'}</span>
+        </button>
+
+        <div className={`flex flex-wrap gap-3 ${filtersOpen ? 'flex' : 'hidden sm:flex'}`}>
+          <select
+            className="input w-auto text-sm min-h-[44px]"
+            value={filterGrade}
+            onChange={(e) => setFilterGrade(e.target.value)}
+          >
+            <option value="">All Grades</option>
+            {GRADES.map((g) => (
+              <option key={g} value={g}>{t(`grades.${g}`)}</option>
+            ))}
+          </select>
+          <select
+            className="input w-auto text-sm min-h-[44px]"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="">All Standards</option>
+            {STANDARDS_TYPES.map((s) => (
+              <option key={s} value={s}>{t(`classes.standards_types.${s}`)}</option>
+            ))}
+          </select>
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setFilterGrade(''); setFilterType(''); }}
+              className="text-sm text-gray-400 hover:text-gray-600 px-2 min-h-[44px]"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -84,17 +110,32 @@ export default function ArchivePage() {
       )}
 
       {loading ? (
-        <div className="text-gray-400 text-sm py-8 text-center">{t('loading.default')}</div>
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => <LessonCardSkeleton key={i} />)}
+        </div>
       ) : lessons.length === 0 ? (
         <div className="card text-center py-16">
-          <div className="text-4xl mb-3">📂</div>
-          <p className="font-medium text-gray-700">No lessons archived yet.</p>
-          <p className="text-sm text-gray-500 mt-1 mb-5">
-            Complete your first lesson analysis to see it here.
+          <div className="text-5xl mb-4">📂</div>
+          <p className="font-semibold text-gray-800 text-lg">
+            {hasActiveFilters ? 'No lessons match these filters' : 'Your archive is empty'}
           </p>
-          <Link to="/wizard" className="btn-primary">
-            ✨ Analyze a Lesson
-          </Link>
+          <p className="text-sm text-gray-500 mt-2 mb-6 max-w-sm mx-auto">
+            {hasActiveFilters
+              ? 'Try adjusting your filters or clear them to see all lessons.'
+              : 'Finish your first lesson analysis and save it to see it here. Your formatted lesson plans will be stored and ready to download anytime.'}
+          </p>
+          {hasActiveFilters ? (
+            <button
+              onClick={() => { setFilterGrade(''); setFilterType(''); }}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              Clear Filters
+            </button>
+          ) : (
+            <Link to="/wizard" className="btn-primary inline-flex items-center gap-2">
+              ✨ Analyze a Lesson
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -106,12 +147,12 @@ export default function ArchivePage() {
 
       {/* Pagination */}
       {pagination.pages > 1 && (
-        <div className="flex justify-center gap-2 mt-8">
+        <div className="flex justify-center gap-2 mt-8 flex-wrap">
           {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((p) => (
             <button
               key={p}
               onClick={() => fetchLessons(p)}
-              className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors
+              className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors min-h-[44px]
                 ${p === pagination.page
                   ? 'bg-primary-600 text-white'
                   : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
@@ -136,7 +177,7 @@ function LessonCard({ lesson, t }) {
 
   return (
     <div className="card hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 truncate">{lesson.title || 'Untitled Lesson'}</h3>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -155,12 +196,25 @@ function LessonCard({ lesson, t }) {
                 </span>
               ))}
               {standards.length > 5 && (
-                <span className="text-xs text-gray-400">+{standards.length - 5} more</span>
+                <span className="text-xs text-gray-400 self-center">+{standards.length - 5} more</span>
               )}
             </div>
           )}
         </div>
-        <div className="text-xs text-gray-400 flex-shrink-0 mt-1">{dateStr}</div>
+
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <span className="text-xs text-gray-400">{dateStr}</span>
+          {lesson.pdf_url && (
+            <a
+              href={lesson.pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 min-h-[44px] px-2 py-1 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+            >
+              ⬇️ Download PDF
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWizard } from '../../contexts/WizardContext';
 import api from '../../utils/api';
+import { StandardsRowSkeleton } from '../Skeleton';
+import WizardTooltip from '../WizardTooltip';
 
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const STANDARDS_TYPES = ['ccss-ela', 'ccss-math', 'ngss', 'hss', 'vapa', 'pe', 'cte'];
@@ -95,13 +97,20 @@ export default function Step2SelectStandards() {
 
       {/* Search */}
       <div className="mb-4">
-        <input
-          type="text"
-          className="input"
-          placeholder={t('wizard.step2.search_placeholder')}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <WizardTooltip
+          id="step2-search"
+          title="Search by keyword or code"
+          body="Type a topic like 'fractions' or a standard code like 'RL.5' to quickly find the right standards for your lesson."
+          position="bottom-left"
+        >
+          <input
+            type="text"
+            className="input"
+            placeholder={t('wizard.step2.search_placeholder')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </WizardTooltip>
       </div>
 
       {/* Selected count badge */}
@@ -129,7 +138,9 @@ export default function Step2SelectStandards() {
       {/* Standards list */}
       <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 max-h-96 overflow-y-auto">
         {loading ? (
-          <div className="text-center text-gray-400 text-sm py-8">{t('loading.default')}</div>
+          <div>
+            {[...Array(5)].map((_, i) => <StandardsRowSkeleton key={i} />)}
+          </div>
         ) : results.length === 0 ? (
           <div className="text-center text-gray-400 text-sm py-8">{t('wizard.step2.no_results')}</div>
         ) : (

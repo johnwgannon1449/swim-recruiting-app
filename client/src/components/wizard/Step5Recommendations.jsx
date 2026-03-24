@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWizard } from '../../contexts/WizardContext';
-import api from '../../utils/api';
+import api, { withRetry } from '../../utils/api';
+import WizardTooltip from '../WizardTooltip';
 
 function RotatingMessage({ messages }) {
   const [idx, setIdx] = useState(0);
@@ -46,12 +47,14 @@ export default function Step5Recommendations() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/analysis/recommendations', {
-        lesson_text: lessonText,
-        grade: selectedClass?.grade_level || 'K',
-        subject: selectedClass?.subject || '',
-        gap_results: gapAnalysis || [],
-      });
+      const res = await withRetry(() =>
+        api.post('/analysis/recommendations', {
+          lesson_text: lessonText,
+          grade: selectedClass?.grade_level || 'K',
+          subject: selectedClass?.subject || '',
+          gap_results: gapAnalysis || [],
+        })
+      );
       const recs = res.data.recommendations.map((r) => ({
         ...r,
         _status: 'pending', // pending | accepted | edited | dismissed
@@ -214,15 +217,22 @@ export default function Step5Recommendations() {
                                 </button>
                               ) : (
                                 <>
-                                  <button
-                                    onClick={() => setRecStatus(idx, isAccepted ? 'pending' : 'accepted')}
-                                    className={`text-xs px-2 py-1 rounded border transition-colors
-                                      ${isAccepted
-                                        ? 'border-success-400 bg-success-100 text-success-800'
-                                        : 'border-success-300 text-success-700 hover:bg-success-50'}`}
+                                  <WizardTooltip
+                                    id="step5-accept"
+                                    title="Accept to add to your lesson"
+                                    body="Click ✅ to merge this activity into your lesson plan. Use ✏️ Edit to customize it first. Dismiss anything that doesn't fit."
+                                    position="bottom-right"
                                   >
-                                    {isAccepted ? `✓ ${t('wizard.step5.accepted')}` : `✅ ${t('wizard.step5.accept')}`}
-                                  </button>
+                                    <button
+                                      onClick={() => setRecStatus(idx, isAccepted ? 'pending' : 'accepted')}
+                                      className={`text-xs px-2 py-1 rounded border transition-colors min-h-[36px]
+                                        ${isAccepted
+                                          ? 'border-success-400 bg-success-100 text-success-800'
+                                          : 'border-success-300 text-success-700 hover:bg-success-50'}`}
+                                    >
+                                      {isAccepted ? `✓ ${t('wizard.step5.accepted')}` : `✅ ${t('wizard.step5.accept')}`}
+                                    </button>
+                                  </WizardTooltip>
                                   <button
                                     onClick={() => toggleEdit(idx)}
                                     className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"

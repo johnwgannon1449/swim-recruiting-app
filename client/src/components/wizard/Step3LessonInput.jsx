@@ -109,21 +109,33 @@ export default function Step3LessonInput() {
   async function handleFile(file) {
     if (!file) return;
     setParseError('');
+
+    // File type check
+    const isDocx = file.name.endsWith('.docx') || file.type.includes('word');
+    const isPdf = file.name.endsWith('.pdf') || file.type === 'application/pdf';
+    if (!isDocx && !isPdf) {
+      setParseError('Unsupported file type. Please upload a .docx or .pdf file.');
+      return;
+    }
+
+    // File size check (20MB limit)
+    if (file.size > 20 * 1024 * 1024) {
+      setParseError('File is too large. Please upload a file under 20MB.');
+      return;
+    }
+
     setParsing(true);
     try {
       let text = '';
-      if (file.name.endsWith('.docx') || file.type.includes('word')) {
+      if (isDocx) {
         text = await parseDocx(file);
-      } else if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
-        text = await parsePdf(file);
       } else {
-        setParseError('Please upload a .docx or .pdf file.');
-        return;
+        text = await parsePdf(file);
       }
       setParsedText(text || '');
-      if (!text) setParseError('Could not extract text from this file. Try copying and pasting instead.');
+      if (!text) setParseError('No readable text found in this file. It may be scanned or image-based. Try copying and pasting instead.');
     } catch (err) {
-      setParseError('Could not parse this file. Try copying and pasting your lesson instead.');
+      setParseError('Could not parse this file. Make sure it is not password-protected or corrupted, and try again. You can also copy and paste your lesson instead.');
     } finally {
       setParsing(false);
     }
@@ -139,6 +151,17 @@ export default function Step3LessonInput() {
 
   async function startRecording() {
     setVoiceError('');
+
+    // Browser support check
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setVoiceError('Voice recording is not supported in your browser. Please use Chrome, Firefox, or Safari, or type your lesson instead.');
+      return;
+    }
+    if (typeof MediaRecorder === 'undefined') {
+      setVoiceError('Voice recording is not supported in this browser. Please try Chrome or Firefox, or type your lesson instead.');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -160,8 +183,14 @@ export default function Step3LessonInput() {
       setRecording(true);
       setRecordingSeconds(0);
       timerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
-    } catch {
-      setVoiceError('Microphone access denied. Please allow microphone access and try again.');
+    } catch (err) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setVoiceError('Microphone access was denied. Please click the microphone icon in your browser address bar to allow access, then try again.');
+      } else if (err.name === 'NotFoundError') {
+        setVoiceError('No microphone found. Please connect a microphone and try again, or type your lesson instead.');
+      } else {
+        setVoiceError('Could not start recording. Please check your microphone and try again, or type your lesson instead.');
+      }
     }
   }
 
@@ -197,7 +226,7 @@ export default function Step3LessonInput() {
       <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('wizard.step3.title')}</h1>
       <p className="text-gray-500 mb-6">{t('wizard.step3.subtitle')}</p>
 
-      {/* Tabs */}
+      {/* Tabs — full-width on mobile, min 44px tap target */}
       <div className="flex border-b border-gray-200 mb-6">
         {[
           { key: 'type', label: t('wizard.step3.tab_type'), icon: '✏️' },
@@ -207,12 +236,14 @@ export default function Step3LessonInput() {
           <button
             key={tab.key}
             onClick={() => switchTab(tab.key)}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors
+            className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-2 py-3 text-sm font-medium border-b-2 transition-colors
               ${activeTab === tab.key
                 ? 'border-primary-600 text-primary-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            <span>{tab.icon}</span> {tab.label}
+            <span>{tab.icon}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden">{tab.key === 'type' ? 'Type' : tab.key === 'upload' ? 'Upload' : 'Voice'}</span>
           </button>
         ))}
       </div>

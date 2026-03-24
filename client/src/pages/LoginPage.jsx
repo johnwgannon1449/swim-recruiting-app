@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,6 +7,8 @@ export default function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === '1';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +39,11 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 bg-white py-8 px-6 shadow-sm rounded-xl border border-gray-200 sm:px-10">
+          {sessionExpired && (
+            <div className="mb-4 p-3 bg-warning-50 border border-warning-200 rounded-lg text-sm text-warning-700">
+              Your session has expired. Please sign in again to continue.
+            </div>
+          )}
           {error && (
             <div className="mb-4 p-3 bg-danger-50 border border-danger-200 rounded-lg text-sm text-danger-700">
               {error}

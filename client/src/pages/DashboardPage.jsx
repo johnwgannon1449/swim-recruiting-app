@@ -5,6 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import ClassForm from '../components/ClassForm';
 import Modal from '../components/Modal';
+import { ClassCardSkeleton } from '../components/Skeleton';
+import OnboardingWelcome from '../components/OnboardingWelcome';
+
+const ONBOARDING_KEY = 'onboardingDismissed_v1';
 
 const MAX_CLASSES = 8;
 
@@ -18,12 +22,24 @@ export default function DashboardPage() {
   const [editingClass, setEditingClass] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [classError, setClassError] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [usage, setUsage] = useState(null);
 
   useEffect(() => {
     api.get('/classes')
-      .then((res) => setClasses(res.data.classes))
+      .then((res) => {
+        setClasses(res.data.classes);
+        // Show onboarding only for users with no classes who haven't dismissed it
+        const dismissed = localStorage.getItem(ONBOARDING_KEY);
+        if (!dismissed && res.data.classes.length === 0) {
+          setShowOnboarding(true);
+        }
+      })
       .catch(() => setClassError(t('errors.generic')))
       .finally(() => setLoadingClasses(false));
+
+    // Load usage count (non-blocking — ignore errors)
+    api.get('/usage').then((res) => setUsage(res.data)).catch(() => {});
   }, []);
 
   async function handleAddClass(values) {
@@ -53,8 +69,26 @@ export default function DashboardPage() {
     }
   }
 
+  function handleOnboardingDismiss() {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setShowOnboarding(false);
+  }
+
+  function handleOnboardingGetStarted() {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setShowOnboarding(false);
+    setShowAddModal(true);
+  }
+
   return (
     <div>
+      {showOnboarding && (
+        <OnboardingWelcome
+          onGetStarted={handleOnboardingGetStarted}
+          onSkip={handleOnboardingDismiss}
+        />
+      )}
+
       {/* Welcome header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -63,9 +97,16 @@ export default function DashboardPage() {
           </h1>
           <p className="text-gray-500 mt-1">{t('dashboard.subtitle')}</p>
         </div>
-        <Link to="/wizard" className="btn-primary flex-shrink-0 text-base py-2.5 px-5">
-          ✨ {t('dashboard.start_lesson')}
-        </Link>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {usage && usage.count > 0 && (
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              {usage.count} lesson{usage.count !== 1 ? 's' : ''} analyzed this month
+            </span>
+          )}
+          <Link to="/wizard" className="btn-primary text-base py-2.5 px-5 min-h-[44px] flex items-center">
+            ✨ {t('dashboard.start_lesson')}
+          </Link>
+        </div>
       </div>
 
       {/* Classes section */}
@@ -89,7 +130,9 @@ export default function DashboardPage() {
         )}
 
         {loadingClasses ? (
-          <div className="text-gray-400 text-sm">{t('loading.default')}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => <ClassCardSkeleton key={i} />)}
+          </div>
         ) : classes.length === 0 ? (
           <div className="card text-center py-12">
             <div className="text-4xl mb-3">🏫</div>

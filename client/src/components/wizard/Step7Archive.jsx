@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useWizard } from '../../contexts/WizardContext';
 import { useAuth } from '../../contexts/AuthContext';
-import api from '../../utils/api';
+import api, { withRetry } from '../../utils/api';
 import { exportLessonPDF } from '../../utils/pdfExport';
 
 function RotatingMessage({ messages }) {
@@ -95,12 +95,14 @@ export default function Step7Archive() {
     setFormatting(true);
     setError('');
     try {
-      const res = await api.post('/analysis/format', {
-        finalized_text: finalizedText,
-        class_info: selectedClass || {},
-        teacher_name: user?.name || 'Teacher',
-        standards: selectedStandards.map((s) => ({ code: s.code, description: s.description })),
-      });
+      const res = await withRetry(() =>
+        api.post('/analysis/format', {
+          finalized_text: finalizedText,
+          class_info: selectedClass || {},
+          teacher_name: user?.name || 'Teacher',
+          standards: selectedStandards.map((s) => ({ code: s.code, description: s.description })),
+        })
+      );
       dispatch({ type: 'SET_FORMATTED_TEXT', payload: res.data.formatted_text });
     } catch (err) {
       setError(err.userMessage || t('errors.generic'));
@@ -147,8 +149,14 @@ export default function Step7Archive() {
     setExportingPdf(true);
     try {
       const text = formattedText || finalizedText;
-      const filename = `lesson-plan-${new Date().toISOString().slice(0, 10)}.pdf`;
-      await exportLessonPDF(text, filename);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const classSlug = (selectedClass?.nickname || 'lesson').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const filename = `lesson-plan-${classSlug}-${dateStr}.pdf`;
+      await exportLessonPDF(text, filename, {
+        name: user?.name || 'Teacher',
+        className: selectedClass?.nickname,
+        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      });
     } catch (err) {
       setError('PDF export failed. Please try again.');
     } finally {
@@ -205,27 +213,29 @@ export default function Step7Archive() {
       {!formatting && formattedText && (
         <>
           {/* Action bar */}
-          <div className="flex flex-wrap gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
             <button
               onClick={handleExportPdf}
               disabled={exportingPdf}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary flex items-center justify-center gap-2 min-h-[44px]"
             >
               {exportingPdf ? '⏳' : '⬇️'} {t('wizard.step7.export_pdf')}
             </button>
             <button
               onClick={handleSave}
               disabled={saving || saved}
-              className={`flex items-center gap-2 ${saved ? 'btn-secondary opacity-75' : 'btn-primary'}`}
+              className={`flex items-center justify-center gap-2 min-h-[44px] ${saved ? 'btn-secondary opacity-75' : 'btn-primary'}`}
             >
               {saving ? '⏳' : saved ? '✅' : '💾'}
               {saving ? t('wizard.step7.saving') : saved ? t('wizard.step7.saved') : t('wizard.step7.save_archive')}
             </button>
           </div>
 
-          {/* Preview */}
-          <div className="card border-gray-200 mb-6 print:shadow-none">
-            <LessonPreview text={formattedText} />
+          {/* Preview — scrollable on small screens */}
+          <div className="card border-gray-200 mb-6 print:shadow-none overflow-x-auto">
+            <div className="min-w-0">
+              <LessonPreview text={formattedText} />
+            </div>
           </div>
 
           {/* Success / next steps */}

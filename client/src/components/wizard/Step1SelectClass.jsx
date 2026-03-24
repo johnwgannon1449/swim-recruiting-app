@@ -4,6 +4,7 @@ import { useWizard } from '../../contexts/WizardContext';
 import api from '../../utils/api';
 import ClassForm from '../ClassForm';
 import Modal from '../Modal';
+import { ClassCardSkeleton } from '../Skeleton';
 
 export default function Step1SelectClass() {
   const { t } = useTranslation();
@@ -58,7 +59,9 @@ export default function Step1SelectClass() {
       )}
 
       {loading ? (
-        <div className="text-gray-400 text-sm py-8 text-center">{t('loading.default')}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => <ClassCardSkeleton key={i} />)}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {classes.map((cls) => {

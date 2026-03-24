@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const { callClaudeJSON, callClaudeText } = require('../utils/claudeClient');
+const { sanitizePromptInput } = require('../utils/sanitize');
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { lesson_text, standards } = req.body;
+    const safeText = sanitizePromptInput(lesson_text);
 
     const standardsList = standards
       .map((s) => `- ${s.code}: ${s.description}`)
@@ -42,7 +44,7 @@ STANDARDS TO EVALUATE:
 ${standardsList}
 
 LESSON PLAN:
-${lesson_text}
+${safeText}
 
 Respond with ONLY a valid JSON array. No other text before or after.`;
 
@@ -72,6 +74,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { lesson_text, grade, subject, gap_results } = req.body;
+    const safeText = sanitizePromptInput(lesson_text);
 
     // Only generate recommendations for partial/missing standards
     const needsWork = gap_results.filter(
@@ -96,7 +99,7 @@ STANDARDS NEEDING IMPROVEMENT:
 ${standardsList}
 
 CURRENT LESSON (for context):
-${lesson_text.slice(0, 2000)}${lesson_text.length > 2000 ? '...' : ''}
+${safeText.slice(0, 2000)}${safeText.length > 2000 ? '...' : ''}
 
 Return a JSON array. Each object must have:
 {
@@ -134,6 +137,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { finalized_text, class_info, teacher_name, standards = [] } = req.body;
+    const safeFinalized = sanitizePromptInput(finalized_text);
     const today = new Date().toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
     });
@@ -187,7 +191,7 @@ ${standardsList}
 ---
 
 ORIGINAL LESSON CONTENT TO REFORMAT:
-${finalized_text}
+${safeFinalized}
 
 Preserve ALL of the teacher's original content and accepted additions. Organize it logically into the sections above. Write in clear, professional educator language. Fill in any obvious structural gaps. Do NOT invent lesson content that wasn't in the original.`;
 
@@ -215,6 +219,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { text, standards } = req.body;
+    const safeText = sanitizePromptInput(text);
 
     const standardsList = standards
       .map((s) => `- ${s.code}: ${s.description}`)
@@ -226,7 +231,7 @@ STANDARDS:
 ${standardsList}
 
 LESSON TEXT:
-${text.slice(0, 3000)}${text.length > 3000 ? '...' : ''}
+${safeText.slice(0, 3000)}${safeText.length > 3000 ? '...' : ''}
 
 Return ONLY a JSON array: [{"standard_code": "CODE", "status": "covered"|"partial"|"missing"}]`;
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWizard } from '../../contexts/WizardContext';
-import api from '../../utils/api';
+import api, { withRetry } from '../../utils/api';
+import WizardTooltip from '../WizardTooltip';
 
 const LOADING_MESSAGES_KEY = 'wizard.step4.loading_messages';
 
@@ -71,13 +72,15 @@ export default function Step4GapAnalysis() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/analysis/gaps', {
-        lesson_text: lessonText,
-        standards: selectedStandards.map((s) => ({
-          code: s.code,
-          description: s.description,
-        })),
-      });
+      const res = await withRetry(() =>
+        api.post('/analysis/gaps', {
+          lesson_text: lessonText,
+          standards: selectedStandards.map((s) => ({
+            code: s.code,
+            description: s.description,
+          })),
+        })
+      );
       dispatch({ type: 'SET_GAP_ANALYSIS', payload: res.data.results });
     } catch (err) {
       setError(err.userMessage || t('errors.generic'));
@@ -134,7 +137,13 @@ export default function Step4GapAnalysis() {
       {!loading && !error && gapAnalysis && (
         <div>
           {/* Summary bar */}
-          <div className="flex gap-4 mb-6 flex-wrap">
+          <WizardTooltip
+            id="step4-results"
+            title="Reading your gap analysis"
+            body="✅ Covered means the standard is well addressed. ⚠️ Partial means it's touched on but could be stronger. ❌ Missing means it needs attention. Continue to get activity suggestions."
+            position="bottom-left"
+          >
+            <div className="flex gap-4 mb-6 flex-wrap">
             {Object.entries(grouped).map(([status, items]) => {
               const cfg = STATUS_CONFIG[status];
               return (
@@ -146,7 +155,8 @@ export default function Step4GapAnalysis() {
                 </div>
               );
             })}
-          </div>
+            </div>
+          </WizardTooltip>
 
           {/* Sections */}
           {['missing', 'partial', 'covered'].map((status) => {
