@@ -106,4 +106,8 @@ async function migrate() {
   }
 }
 
-migrate();
+module.exports = { schema };
+
+if (require.main === module) {
+  migrate();
+}

@@ -15,6 +15,20 @@ const usageRoutes = require('./routes/usage');
 
 const app = express();
 
+// Run migrations on startup (idempotent — uses CREATE IF NOT EXISTS)
+async function runMigrations() {
+  const client = await pool.connect();
+  try {
+    const { schema } = require('./db/migrate');
+    await client.query(schema);
+    console.log('Database migrations applied.');
+  } catch (err) {
+    console.error('Migration error:', err);
+  } finally {
+    client.release();
+  }
+}
+
 // CORS
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -104,8 +118,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  });
 });
 
 module.exports = app;
