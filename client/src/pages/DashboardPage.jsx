@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
@@ -9,12 +9,12 @@ import { ClassCardSkeleton } from '../components/Skeleton';
 import OnboardingWelcome from '../components/OnboardingWelcome';
 
 const ONBOARDING_KEY = 'onboardingDismissed_v1';
-
 const MAX_CLASSES = 8;
 
 export default function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
@@ -24,12 +24,12 @@ export default function DashboardPage() {
   const [classError, setClassError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [usage, setUsage] = useState(null);
+  const [drafts, setDrafts] = useState([]);
 
   useEffect(() => {
     api.get('/classes')
       .then((res) => {
         setClasses(res.data.classes);
-        // Show onboarding only for users with no classes who haven't dismissed it
         const dismissed = localStorage.getItem(ONBOARDING_KEY);
         if (!dismissed && res.data.classes.length === 0) {
           setShowOnboarding(true);
@@ -38,8 +38,8 @@ export default function DashboardPage() {
       .catch(() => setClassError(t('errors.generic')))
       .finally(() => setLoadingClasses(false));
 
-    // Load usage count (non-blocking — ignore errors)
     api.get('/usage').then((res) => setUsage(res.data)).catch(() => {});
+    api.get('/lessons/drafts').then((res) => setDrafts(res.data.drafts || [])).catch(() => {});
   }, []);
 
   async function handleAddClass(values) {
@@ -69,6 +69,13 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleDiscardDraft(draftId) {
+    try {
+      await api.delete(`/lessons/${draftId}`);
+      setDrafts((prev) => prev.filter((d) => d.id !== draftId));
+    } catch {}
+  }
+
   function handleOnboardingDismiss() {
     localStorage.setItem(ONBOARDING_KEY, '1');
     setShowOnboarding(false);
@@ -79,6 +86,11 @@ export default function DashboardPage() {
     setShowOnboarding(false);
     setShowAddModal(true);
   }
+
+  const stepLabels = {
+    1: 'Choose class', 2: 'Select standards', 3: 'Enter lesson',
+    4: 'Gap analysis', 5: 'Recommendations', 6: 'Review', 7: 'Saving',
+  };
 
   return (
     <div>
@@ -92,14 +104,14 @@ export default function DashboardPage() {
       {/* Welcome header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold" style={{ color: '#1E293B' }}>
             {t('dashboard.welcome', { name: user?.name?.split(' ')[0] })}
           </h1>
-          <p className="text-gray-500 mt-1">{t('dashboard.subtitle')}</p>
+          <p className="mt-1" style={{ color: '#64748B' }}>{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           {usage && usage.count > 0 && (
-            <span className="text-xs text-gray-400 whitespace-nowrap">
+            <span className="text-xs whitespace-nowrap" style={{ color: '#94a3b8' }}>
               {usage.count} lesson{usage.count !== 1 ? 's' : ''} analyzed this month
             </span>
           )}
@@ -109,15 +121,66 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* In-progress drafts */}
+      {drafts.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-base font-semibold mb-3" style={{ color: '#1E293B' }}>
+            Continue where you left off
+          </h2>
+          <div className="space-y-2">
+            {drafts.map((draft) => {
+              const updated = new Date(draft.updated_at).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+              });
+              const stepLabel = stepLabels[draft.current_step] || `Step ${draft.current_step}`;
+              return (
+                <div
+                  key={draft.id}
+                  className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl"
+                  style={{ backgroundColor: '#fff', border: '1px solid #E8EEF5', boxShadow: '0 1px 3px rgba(30,58,95,0.06)' }}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium" style={{ color: '#1E293B' }}>
+                        {draft.subject || 'Lesson'} {draft.grade_level ? `· Grade ${draft.grade_level}` : ''}
+                      </span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: '#EEF2F7', color: '#1e3a5f' }}
+                      >
+                        {stepLabel}
+                      </span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>Last saved {updated}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleDiscardDraft(draft.id)}
+                      className="text-xs px-2 py-1 rounded border"
+                      style={{ color: '#94a3b8', borderColor: '#e2e8f0' }}
+                    >
+                      Discard
+                    </button>
+                    <button
+                      onClick={() => navigate(`/wizard?resume=${draft.id}`)}
+                      className="btn-primary text-sm py-1.5 px-3"
+                    >
+                      Resume →
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Classes section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.my_classes')}</h2>
+          <h2 className="text-lg font-semibold" style={{ color: '#1E293B' }}>{t('dashboard.my_classes')}</h2>
           {classes.length < MAX_CLASSES && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary text-sm"
-            >
+            <button onClick={() => setShowAddModal(true)} className="btn-primary text-sm">
               + {t('dashboard.add_class')}
             </button>
           )}
@@ -136,12 +199,9 @@ export default function DashboardPage() {
         ) : classes.length === 0 ? (
           <div className="card text-center py-12">
             <div className="text-4xl mb-3">🏫</div>
-            <p className="font-medium text-gray-700">{t('dashboard.no_classes')}</p>
-            <p className="text-sm text-gray-500 mt-1 mb-4">{t('dashboard.no_classes_sub')}</p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary"
-            >
+            <p className="font-medium" style={{ color: '#374151' }}>{t('dashboard.no_classes')}</p>
+            <p className="text-sm mt-1 mb-4" style={{ color: '#64748B' }}>{t('dashboard.no_classes_sub')}</p>
+            <button onClick={() => setShowAddModal(true)} className="btn-primary">
               + {t('dashboard.add_class')}
             </button>
           </div>
@@ -171,17 +231,13 @@ export default function DashboardPage() {
         )}
 
         {classes.length >= MAX_CLASSES && (
-          <p className="text-sm text-gray-500 mt-3">{t('dashboard.class_limit')}</p>
+          <p className="text-sm mt-3" style={{ color: '#64748B' }}>{t('dashboard.class_limit')}</p>
         )}
       </div>
 
       {/* Add class modal */}
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)}>
-        <ClassForm
-          onSave={handleAddClass}
-          onCancel={() => setShowAddModal(false)}
-          isEdit={false}
-        />
+        <ClassForm onSave={handleAddClass} onCancel={() => setShowAddModal(false)} isEdit={false} />
       </Modal>
 
       {/* Edit class modal */}
@@ -203,11 +259,9 @@ function ClassCard({ cls, onEdit, onDelete, deleting, t }) {
   const standardsLabel = t(`classes.standards_types.${cls.standards_type}`, {
     defaultValue: cls.standards_type,
   });
-
   const gradeLabel = t(`grades.${cls.grade_level}`, {
     defaultValue: t('dashboard.grade', { grade: cls.grade_level }),
   });
-
   const subjectColors = {
     'ccss-ela': 'bg-blue-100 text-blue-700',
     'ccss-math': 'bg-purple-100 text-purple-700',
@@ -217,15 +271,14 @@ function ClassCard({ cls, onEdit, onDelete, deleting, t }) {
     pe: 'bg-orange-100 text-orange-700',
     cte: 'bg-teal-100 text-teal-700',
   };
-
   const badgeClass = subjectColors[cls.standards_type] || 'bg-gray-100 text-gray-700';
 
   return (
     <div className="card hover:shadow-md transition-shadow cursor-pointer group">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 text-base leading-snug">{cls.nickname}</h3>
-          <p className="text-sm text-gray-500 mt-0.5">{gradeLabel} &middot; {cls.subject}</p>
+          <h3 className="font-semibold text-base leading-snug" style={{ color: '#1E293B' }}>{cls.nickname}</h3>
+          <p className="text-sm mt-0.5" style={{ color: '#64748B' }}>{gradeLabel} &middot; {cls.subject}</p>
         </div>
       </div>
 
@@ -234,10 +287,7 @@ function ClassCard({ cls, onEdit, onDelete, deleting, t }) {
       </span>
 
       <div className="mt-4 flex gap-2">
-        <button
-          onClick={onEdit}
-          className="btn-secondary text-xs flex-1"
-        >
+        <button onClick={onEdit} className="btn-secondary text-xs flex-1">
           ✏️ {t('dashboard.edit_class')}
         </button>
         <button

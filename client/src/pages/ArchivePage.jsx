@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { LessonCardSkeleton } from '../components/Skeleton';
+import Modal from '../components/Modal';
 
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const STANDARDS_TYPES = ['ccss-ela', 'ccss-math', 'ngss', 'hss', 'vapa', 'pe', 'cte'];
@@ -18,6 +19,9 @@ export default function ArchivePage() {
   const [filterGrade, setFilterGrade] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchLessons(1);
@@ -39,14 +43,29 @@ export default function ArchivePage() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/lessons/${deleteId}`);
+      setLessons((prev) => prev.filter((l) => l.id !== deleteId));
+      setPagination((p) => ({ ...p, total: Math.max(0, p.total - 1) }));
+    } catch {
+      setError('Could not delete lesson. Please try again.');
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
+  }
+
   const hasActiveFilters = filterGrade || filterType;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('nav.archive')}</h1>
-          <p className="text-gray-500 mt-0.5">
+          <h1 className="text-2xl font-bold" style={{ color: '#1E293B' }}>{t('nav.archive')}</h1>
+          <p className="mt-0.5" style={{ color: '#64748B' }}>
             {pagination.total > 0
               ? `${pagination.total} saved lesson${pagination.total !== 1 ? 's' : ''}`
               : 'Your saved lesson plans'}
@@ -57,9 +76,8 @@ export default function ArchivePage() {
         </Link>
       </div>
 
-      {/* Filters — full on tablet+, collapsible on mobile */}
+      {/* Filters */}
       <div className="mb-6">
-        {/* Mobile toggle */}
         <button
           onClick={() => setFiltersOpen((o) => !o)}
           className="sm:hidden flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 min-h-[44px] mb-2"
@@ -116,13 +134,13 @@ export default function ArchivePage() {
       ) : lessons.length === 0 ? (
         <div className="card text-center py-16">
           <div className="text-5xl mb-4">📂</div>
-          <p className="font-semibold text-gray-800 text-lg">
+          <p className="font-semibold text-lg" style={{ color: '#1E293B' }}>
             {hasActiveFilters ? 'No lessons match these filters' : 'Your archive is empty'}
           </p>
-          <p className="text-sm text-gray-500 mt-2 mb-6 max-w-sm mx-auto">
+          <p className="text-sm mt-2 mb-6 max-w-sm mx-auto" style={{ color: '#64748B' }}>
             {hasActiveFilters
               ? 'Try adjusting your filters or clear them to see all lessons.'
-              : 'Finish your first lesson analysis and save it to see it here. Your formatted lesson plans will be stored and ready to download anytime.'}
+              : 'Finish your first lesson analysis and save it to see it here.'}
           </p>
           {hasActiveFilters ? (
             <button
@@ -140,7 +158,12 @@ export default function ArchivePage() {
       ) : (
         <div className="space-y-3">
           {lessons.map((lesson) => (
-            <LessonCard key={lesson.id} lesson={lesson} t={t} />
+            <LessonCard
+              key={lesson.id}
+              lesson={lesson}
+              t={t}
+              onDelete={() => setDeleteId(lesson.id)}
+            />
           ))}
         </div>
       )}
@@ -162,11 +185,27 @@ export default function ArchivePage() {
           ))}
         </div>
       )}
+
+      {/* Delete confirm modal */}
+      <Modal open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <h2 className="text-lg font-semibold mb-2" style={{ color: '#1E293B' }}>Delete this lesson?</h2>
+        <p className="text-sm mb-5" style={{ color: '#64748B', lineHeight: 1.6 }}>
+          This can't be undone. The lesson and any associated data will be permanently removed.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => setDeleteId(null)} className="btn-secondary" disabled={deleting}>
+            Cancel
+          </button>
+          <button onClick={handleDelete} className="btn-danger" disabled={deleting}>
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
 
-function LessonCard({ lesson, t }) {
+function LessonCard({ lesson, t, onDelete }) {
   const standards = Array.isArray(lesson.standards_covered) ? lesson.standards_covered : [];
   const dateStr = new Date(lesson.created_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
@@ -179,12 +218,13 @@ function LessonCard({ lesson, t }) {
     <div className="card hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 truncate">{lesson.title || 'Untitled Lesson'}</h3>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h3 className="font-semibold truncate" style={{ color: '#1E293B' }}>
+            {lesson.title || 'Untitled Lesson'}
+          </h3>
+          <p className="text-sm mt-0.5" style={{ color: '#64748B' }}>
             {[lesson.class_nickname, gradeLabel, lesson.subject].filter(Boolean).join(' · ')}
             {' · '}{dateStr}
           </p>
-          {/* Standards chips */}
           {standards.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {standards.slice(0, 5).map((s, i) => (
@@ -203,7 +243,6 @@ function LessonCard({ lesson, t }) {
         </div>
 
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <span className="text-xs text-gray-400">{dateStr}</span>
           {lesson.pdf_url && (
             <a
               href={lesson.pdf_url}
@@ -214,6 +253,12 @@ function LessonCard({ lesson, t }) {
               ⬇️ Download PDF
             </a>
           )}
+          <button
+            onClick={onDelete}
+            className="text-xs px-2 py-1 rounded border border-danger-200 text-danger-600 hover:bg-danger-50 transition-colors min-h-[36px]"
+          >
+            🗑 Delete
+          </button>
         </div>
       </div>
     </div>

@@ -53,6 +53,11 @@ CREATE TABLE IF NOT EXISTS lessons (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Auto-save draft columns
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS step_data JSONB DEFAULT '{}';
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS current_step INTEGER DEFAULT 1;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT TRUE;
+
 -- Lesson analyses (gap analysis results)
 CREATE TABLE IF NOT EXISTS lesson_analyses (
   id SERIAL PRIMARY KEY,

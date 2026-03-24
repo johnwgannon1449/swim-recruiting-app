@@ -70,6 +70,7 @@ export default function Step7Archive() {
     selectedStandards,
     formattedText,
     savedLessonId,
+    draftLessonId,
   } = state;
 
   const [formatting, setFormatting] = useState(!formattedText);
@@ -118,6 +119,7 @@ export default function Step7Archive() {
     try {
       const title = extractTitle(formattedText || finalizedText);
       const res = await api.post('/lessons', {
+        draft_id: draftLessonId || undefined,
         class_id: selectedClass?.id,
         title,
         grade_level: selectedClass?.grade_level,

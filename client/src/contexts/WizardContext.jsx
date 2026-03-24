@@ -6,15 +6,16 @@ const TOTAL_STEPS = 7;
 const initialState = {
   currentStep: 1,
   selectedClass: null,
-  selectedStandards: [],      // [{code, description, domain, grade, ...}]
+  selectedStandards: [],
   lessonText: '',
-  lessonInputMethod: 'type',  // 'type' | 'upload' | 'speak'
-  gapAnalysis: null,          // [{standard_code, coverage_status, explanation, confidence_score}]
-  recommendations: [],        // [{...rec, _status: 'pending'|'accepted'|'edited'|'dismissed', _editedText}]
+  lessonInputMethod: 'type',
+  gapAnalysis: null,
+  recommendations: [],
   customAdditions: '',
   finalizedText: '',
   formattedText: '',
   savedLessonId: null,
+  draftLessonId: null,
 };
 
 function reducer(state, action) {
@@ -51,6 +52,8 @@ function reducer(state, action) {
       return { ...state, formattedText: action.payload };
     case 'SET_SAVED_LESSON_ID':
       return { ...state, savedLessonId: action.payload };
+    case 'SET_DRAFT_LESSON_ID':
+      return { ...state, draftLessonId: action.payload };
     case 'RESET':
       return { ...initialState };
     case 'HYDRATE':
