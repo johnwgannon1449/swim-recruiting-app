@@ -29,10 +29,10 @@ export default function Layout({ children }) {
         style={{ borderBottom: '1px solid #E8EEF5', boxShadow: '0 1px 4px rgba(30,58,95,0.06)' }}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          {/* Room4 wordmark */}
+          {/* Room4AI wordmark */}
           <Link to="/dashboard" className="flex items-center select-none">
             <span className="text-2xl font-bold tracking-tight" style={{ color: '#1E3A5F' }}>
-              Room<span style={{ color: '#F59E0B' }}>4</span>
+              Room<span style={{ color: '#F59E0B' }}>4</span>AI
             </span>
           </Link>
 
