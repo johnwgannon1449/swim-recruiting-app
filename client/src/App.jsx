@@ -17,7 +17,7 @@ function SplashScreen({ fading }) {
       style={{ backgroundColor: '#1E3A5F' }}
     >
       <h1 className="text-5xl font-bold text-white tracking-tight mb-3">
-        Room<span style={{ color: '#F59E0B' }}>4</span>AI
+        Room<span style={{ color: '#F59E0B' }}>4</span>
       </h1>
       <p className="text-sm mb-10" style={{ color: '#94b8d8' }}>
         Lesson planning, elevated.
