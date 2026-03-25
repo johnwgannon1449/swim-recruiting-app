@@ -392,7 +392,7 @@ function LessonPDF({ formattedText, teacherInfo }) {
       title={docTitle}
       author={meta.teacher || 'Teacher'}
       subject="Lesson Plan"
-      creator="Room4"
+      creator="Room4AI"
     >
       <Page size="LETTER" style={styles.page} wrap>
         {/* Top brand bar */}
@@ -400,7 +400,7 @@ function LessonPDF({ formattedText, teacherInfo }) {
 
         {/* Document title */}
         <Text style={styles.docTitle}>{docTitle}</Text>
-        <Text style={styles.docSubtitle}>Room4 · Lesson planning, elevated.</Text>
+        <Text style={styles.docSubtitle}>Room4AI · Lesson planning, elevated.</Text>
         <View style={styles.titleRule} />
 
         {/* Metadata block */}

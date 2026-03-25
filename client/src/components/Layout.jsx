@@ -32,7 +32,7 @@ export default function Layout({ children }) {
           {/* Room4 wordmark */}
           <Link to="/dashboard" className="flex items-center select-none">
             <span className="text-2xl font-bold tracking-tight" style={{ color: '#1E3A5F' }}>
-              Room<span style={{ color: '#F59E0B' }}>4</span>
+              Room<span style={{ color: '#F59E0B' }}>4</span>AI
             </span>
           </Link>
 
