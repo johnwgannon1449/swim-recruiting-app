@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import Modal from './Modal';
 import i18n from '../i18n';
 
 export default function Layout({ children }) {
@@ -9,6 +10,7 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showNewLessonModal, setShowNewLessonModal] = useState(false);
 
   function handleLogout() {
     logout();
@@ -19,6 +21,28 @@ export default function Layout({ children }) {
     const next = i18n.language === 'en' ? 'es' : 'en';
     i18n.changeLanguage(next);
     localStorage.setItem('language', next);
+  }
+
+  function handleNewLesson() {
+    const wizardState = localStorage.getItem('wizardState_v1');
+    if (wizardState) {
+      try {
+        const parsed = JSON.parse(wizardState);
+        // Only warn if the wizard is past step 1
+        if (parsed.currentStep && parsed.currentStep > 1) {
+          setShowNewLessonModal(true);
+          return;
+        }
+      } catch {}
+    }
+    localStorage.removeItem('wizardState_v1');
+    navigate('/wizard');
+  }
+
+  function confirmNewLesson() {
+    localStorage.removeItem('wizardState_v1');
+    setShowNewLessonModal(false);
+    navigate('/wizard');
   }
 
   return (
@@ -64,9 +88,14 @@ export default function Layout({ children }) {
                 </nav>
 
                 <button
-                  onClick={handleLogout}
-                  className="btn-secondary text-sm"
+                  onClick={handleNewLesson}
+                  className="text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                  style={{ backgroundColor: '#F59E0B', color: '#1E293B' }}
                 >
+                  + New Lesson
+                </button>
+
+                <button onClick={handleLogout} className="btn-secondary text-sm">
                   {t('nav.sign_out')}
                 </button>
               </>
@@ -79,6 +108,32 @@ export default function Layout({ children }) {
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
         {children}
       </main>
+
+      {/* New Lesson confirm modal */}
+      <Modal open={showNewLessonModal} onClose={() => setShowNewLessonModal(false)}>
+        <div className="text-center">
+          <div className="text-4xl mb-3">📝</div>
+          <h2 className="text-lg font-bold mb-2" style={{ color: '#1E293B' }}>Start a new lesson?</h2>
+          <p className="text-sm mb-6" style={{ color: '#64748B' }}>
+            Your current lesson is saved and you can return to it from the dashboard.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => setShowNewLessonModal(false)}
+              className="btn-secondary flex-1"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmNewLesson}
+              className="flex-1 font-semibold py-2 px-4 rounded-lg transition-colors"
+              style={{ backgroundColor: '#F59E0B', color: '#1E293B' }}
+            >
+              Start New Lesson
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

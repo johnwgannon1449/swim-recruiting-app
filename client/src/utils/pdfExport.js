@@ -14,16 +14,78 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 
-// ── Colour palette ──────────────────────────────────────────────────────────
-const BRAND = '#1d4ed8';    // blue-700
-const BRAND_LIGHT = '#dbeafe'; // blue-100
-const HEADING = '#1e293b';  // slate-800
-const BODY = '#374151';     // gray-700
-const MUTED = '#9ca3af';    // gray-400
-const RULE = '#e5e7eb';     // gray-200
-const SUCCESS_BG = '#f0fdf4';
-const WARNING_BG = '#fffbeb';
-const DANGER_BG = '#fef2f2';
+// ── Template configurations ───────────────────────────────────────────────────
+const TEMPLATE_CONFIGS = {
+  classic: {
+    brand: '#1e3a5f',
+    brandLight: '#d6e0ee',
+    heading: '#1e293b',
+    body: '#374151',
+    muted: '#9ca3af',
+    rule: '#e5e7eb',
+    pageBg: '#ffffff',
+    headerHeight: 8,
+  },
+  modern: {
+    brand: '#d97706',
+    brandLight: '#fef3c7',
+    heading: '#1e293b',
+    body: '#374151',
+    muted: '#92400e',
+    rule: '#fde68a',
+    pageBg: '#ffffff',
+    headerHeight: 10,
+  },
+  structured: {
+    brand: '#3b82f6',
+    brandLight: '#eff6ff',
+    heading: '#0f172a',
+    body: '#334155',
+    muted: '#94a3b8',
+    rule: '#e2e8f0',
+    pageBg: '#f8fafc',
+    headerHeight: 8,
+  },
+  chalkboard: {
+    brand: '#a3e635',
+    brandLight: '#44403c',
+    heading: '#fef9c3',
+    body: '#e7e5e4',
+    muted: '#a8a29e',
+    rule: '#57534e',
+    pageBg: '#292524',
+    headerHeight: 8,
+  },
+  bright: {
+    brand: '#7c3aed',
+    brandLight: '#f3e8ff',
+    heading: '#1e1b4b',
+    body: '#374151',
+    muted: '#9ca3af',
+    rule: '#e9d5ff',
+    pageBg: '#ffffff',
+    headerHeight: 10,
+  },
+  storybook: {
+    brand: '#d97706',
+    brandLight: '#fde68a',
+    heading: '#44403c',
+    body: '#57534e',
+    muted: '#a8a29e',
+    rule: '#fde68a',
+    pageBg: '#fffbeb',
+    headerHeight: 8,
+  },
+};
+
+// ── Colour palette (resolved per template) ────────────────────────────────────
+// Default to classic
+const BRAND = '#1e3a5f';
+const BRAND_LIGHT = '#d6e0ee';
+const HEADING = '#1e293b';
+const BODY = '#374151';
+const MUTED = '#9ca3af';
+const RULE = '#e5e7eb';
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
@@ -248,7 +310,7 @@ function InlineText({ text, baseStyle }) {
 
 // ── Parse formatted text into React-PDF elements ────────────────────────────
 
-function renderLines(lines) {
+function renderLines(lines, dyn = styles) {
   const elements = [];
   let i = 0;
 
@@ -258,15 +320,15 @@ function renderLines(lines) {
 
     if (line.startsWith('# ')) {
       elements.push(
-        <Text key={i} style={styles.h1}>{line.slice(2)}</Text>
+        <Text key={i} style={dyn.h1}>{line.slice(2)}</Text>
       );
     } else if (line.startsWith('## ')) {
       elements.push(
-        <Text key={i} style={styles.h2}>{line.slice(3)}</Text>
+        <Text key={i} style={dyn.h2}>{line.slice(3)}</Text>
       );
     } else if (line.startsWith('### ')) {
       elements.push(
-        <Text key={i} style={styles.h3}>{line.slice(4)}</Text>
+        <Text key={i} style={dyn.h3}>{line.slice(4)}</Text>
       );
     } else if (line.startsWith('- **') || line.startsWith('* **')) {
       // Bold label line: "- **Teacher:** John Smith"
@@ -275,8 +337,8 @@ function renderLines(lines) {
       if (boldMatch) {
         elements.push(
           <View key={i} style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>
+            <Text style={dyn.bulletDot}>•</Text>
+            <Text style={dyn.bulletText}>
               <Text style={{ fontFamily: 'Helvetica-Bold' }}>{boldMatch[1]}: </Text>
               {boldMatch[2]}
             </Text>
@@ -285,33 +347,33 @@ function renderLines(lines) {
       } else {
         elements.push(
           <View key={i} style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <InlineText text={content} baseStyle={styles.bulletText} />
+            <Text style={dyn.bulletDot}>•</Text>
+            <InlineText text={content} baseStyle={dyn.bulletText} />
           </View>
         );
       }
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       elements.push(
         <View key={i} style={styles.bulletRow}>
-          <Text style={styles.bulletDot}>•</Text>
-          <InlineText text={line.slice(2)} baseStyle={styles.bulletText} />
+          <Text style={dyn.bulletDot}>•</Text>
+          <InlineText text={line.slice(2)} baseStyle={dyn.bulletText} />
         </View>
       );
     } else if (/^\d+\.\s/.test(line)) {
       const numMatch = line.match(/^(\d+)\.\s+(.*)/);
       elements.push(
         <View key={i} style={styles.numberedRow}>
-          <Text style={styles.numberedLabel}>{numMatch[1]}.</Text>
-          <InlineText text={numMatch[2]} baseStyle={styles.bulletText} />
+          <Text style={dyn.numberedLabel}>{numMatch[1]}.</Text>
+          <InlineText text={numMatch[2]} baseStyle={dyn.bulletText} />
         </View>
       );
     } else if (line === '---') {
-      elements.push(<View key={i} style={styles.hrule} />);
+      elements.push(<View key={i} style={dyn.hrule} />);
     } else if (line === '') {
       elements.push(<View key={i} style={styles.spacer} />);
     } else {
       elements.push(
-        <InlineText key={i} text={line} baseStyle={styles.bodyText} />
+        <InlineText key={i} text={line} baseStyle={dyn.bodyText} />
       );
     }
 
@@ -352,9 +414,36 @@ function extractStandardCodes(text) {
   return codes;
 }
 
+// ── Build dynamic styles for a template config ────────────────────────────────
+
+function buildDynamicStyles(cfg) {
+  return {
+    page: { ...styles.page, backgroundColor: cfg.pageBg },
+    pageHeader: { ...styles.pageHeader, height: cfg.headerHeight, backgroundColor: cfg.brand },
+    docTitle: { ...styles.docTitle, color: cfg.brand },
+    titleRule: { borderBottomWidth: 2, borderBottomColor: cfg.brand, marginBottom: 18 },
+    metaRow: { ...styles.metaRow, backgroundColor: cfg.brandLight },
+    metaLabel: { ...styles.metaLabel, color: cfg.brand },
+    metaValue: { ...styles.metaValue, color: cfg.heading },
+    standardChip: { ...styles.standardChip, backgroundColor: cfg.brandLight },
+    standardChipText: { ...styles.standardChipText, color: cfg.brand },
+    h1: { ...styles.h1, color: cfg.brand },
+    h2: { ...styles.h2, color: cfg.heading, borderBottomColor: cfg.rule },
+    h3: { ...styles.h3, color: cfg.heading },
+    bodyText: { ...styles.bodyText, color: cfg.body },
+    bulletDot: { ...styles.bulletDot, color: cfg.brand },
+    bulletText: { ...styles.bulletText, color: cfg.body },
+    numberedLabel: { ...styles.numberedLabel, color: cfg.brand },
+    hrule: { borderBottomWidth: 1, borderBottomColor: cfg.rule, marginVertical: 10 },
+    footerText: { ...styles.footerText, color: cfg.muted },
+  };
+}
+
 // ── PDF Document component ───────────────────────────────────────────────────
 
-function LessonPDF({ formattedText, teacherInfo }) {
+function LessonPDF({ formattedText, teacherInfo, template = 'classic' }) {
+  const cfg = TEMPLATE_CONFIGS[template] || TEMPLATE_CONFIGS.classic;
+  const dyn = buildDynamicStyles(cfg);
   const lines = formattedText.split('\n');
 
   // Extract document title from first # line
@@ -392,48 +481,48 @@ function LessonPDF({ formattedText, teacherInfo }) {
       title={docTitle}
       author={meta.teacher || 'Teacher'}
       subject="Lesson Plan"
-      creator="Lesson Plan Analyzer"
+      creator="Room4AI"
     >
-      <Page size="LETTER" style={styles.page} wrap>
+      <Page size="LETTER" style={dyn.page} wrap>
         {/* Top brand bar */}
-        <View style={styles.pageHeader} fixed />
+        <View style={dyn.pageHeader} fixed />
 
         {/* Document title */}
-        <Text style={styles.docTitle}>{docTitle}</Text>
-        <Text style={styles.docSubtitle}>Lesson Plan · Lesson Plan Analyzer</Text>
-        <View style={styles.titleRule} />
+        <Text style={dyn.docTitle}>{docTitle}</Text>
+        <Text style={styles.docSubtitle}>Room4AI · Lesson planning, elevated.</Text>
+        <View style={dyn.titleRule} />
 
         {/* Metadata block */}
         {(meta.teacher || meta.class || meta.grade || meta.subject || meta.date) && (
-          <View style={styles.metaRow}>
+          <View style={dyn.metaRow}>
             {meta.teacher && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Teacher</Text>
-                <Text style={styles.metaValue}>{meta.teacher}</Text>
+                <Text style={dyn.metaLabel}>Teacher</Text>
+                <Text style={dyn.metaValue}>{meta.teacher}</Text>
               </View>
             )}
             {meta.class && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Class</Text>
-                <Text style={styles.metaValue}>{meta.class}</Text>
+                <Text style={dyn.metaLabel}>Class</Text>
+                <Text style={dyn.metaValue}>{meta.class}</Text>
               </View>
             )}
             {meta.grade && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Grade</Text>
-                <Text style={styles.metaValue}>{meta.grade}</Text>
+                <Text style={dyn.metaLabel}>Grade</Text>
+                <Text style={dyn.metaValue}>{meta.grade}</Text>
               </View>
             )}
             {meta.subject && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Subject</Text>
-                <Text style={styles.metaValue}>{meta.subject}</Text>
+                <Text style={dyn.metaLabel}>Subject</Text>
+                <Text style={dyn.metaValue}>{meta.subject}</Text>
               </View>
             )}
             {meta.date && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Date</Text>
-                <Text style={styles.metaValue}>{meta.date}</Text>
+                <Text style={dyn.metaLabel}>Date</Text>
+                <Text style={dyn.metaValue}>{meta.date}</Text>
               </View>
             )}
           </View>
@@ -443,23 +532,23 @@ function LessonPDF({ formattedText, teacherInfo }) {
         {standardCodes.length > 0 && (
           <View style={styles.standardsRow}>
             {standardCodes.map((code, i) => (
-              <View key={i} style={styles.standardChip}>
-                <Text style={styles.standardChipText}>{code}</Text>
+              <View key={i} style={dyn.standardChip}>
+                <Text style={dyn.standardChipText}>{code}</Text>
               </View>
             ))}
           </View>
         )}
 
         {/* Body content */}
-        {renderLines(filteredLines)}
+        {renderLines(filteredLines, dyn)}
 
         {/* Footer on every page */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>{footerLeft}</Text>
-          <Text style={styles.footerText} render={({ pageNumber, totalPages }) =>
+          <Text style={dyn.footerText}>{footerLeft}</Text>
+          <Text style={dyn.footerText} render={({ pageNumber, totalPages }) =>
             `Page ${pageNumber} of ${totalPages}`
           } />
-          <Text style={styles.footerText}>{footerRight}</Text>
+          <Text style={dyn.footerText}>{footerRight}</Text>
         </View>
       </Page>
     </Document>
@@ -474,10 +563,11 @@ function LessonPDF({ formattedText, teacherInfo }) {
  * @param {string} formattedText - Markdown-formatted lesson plan text
  * @param {string} filename      - Download filename
  * @param {object} teacherInfo   - Optional { name, className, date }
+ * @param {string} template      - Template name (classic|modern|structured|chalkboard|bright|storybook)
  */
-export async function exportLessonPDF(formattedText, filename = 'lesson-plan.pdf', teacherInfo = {}) {
+export async function exportLessonPDF(formattedText, filename = 'lesson-plan.pdf', teacherInfo = {}, template = 'classic') {
   const blob = await pdf(
-    <LessonPDF formattedText={formattedText} teacherInfo={teacherInfo} />
+    <LessonPDF formattedText={formattedText} teacherInfo={teacherInfo} template={template} />
   ).toBlob();
 
   const url = URL.createObjectURL(blob);

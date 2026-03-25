@@ -152,11 +152,16 @@ export default function Step7Archive() {
       const dateStr = new Date().toISOString().slice(0, 10);
       const classSlug = (selectedClass?.nickname || 'lesson').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const filename = `lesson-plan-${classSlug}-${dateStr}.pdf`;
-      await exportLessonPDF(text, filename, {
-        name: user?.name || 'Teacher',
-        className: selectedClass?.nickname,
-        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      });
+      await exportLessonPDF(
+        text,
+        filename,
+        {
+          name: user?.name || 'Teacher',
+          className: selectedClass?.nickname,
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        },
+        user?.template_choice || 'classic'
+      );
     } catch (err) {
       setError('PDF export failed. Please try again.');
     } finally {

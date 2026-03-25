@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import ClassForm from '../components/ClassForm';
 import Modal from '../components/Modal';
+import TemplatePicker from '../components/TemplatePicker';
 import { ClassCardSkeleton } from '../components/Skeleton';
 import OnboardingWelcome from '../components/OnboardingWelcome';
 
@@ -15,6 +16,7 @@ const MAX_CLASSES = 8;
 export default function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
@@ -24,6 +26,8 @@ export default function DashboardPage() {
   const [classError, setClassError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [usage, setUsage] = useState(null);
+  const [drafts, setDrafts] = useState([]);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   useEffect(() => {
     api.get('/classes')
@@ -40,6 +44,7 @@ export default function DashboardPage() {
 
     // Load usage count (non-blocking — ignore errors)
     api.get('/usage').then((res) => setUsage(res.data)).catch(() => {});
+    api.get('/lessons/drafts').then((res) => setDrafts(res.data.drafts || [])).catch(() => {});
   }, []);
 
   async function handleAddClass(values) {
@@ -68,6 +73,18 @@ export default function DashboardPage() {
       setDeletingId(null);
     }
   }
+
+  async function handleDiscardDraft(draftId) {
+    try {
+      await api.delete(`/lessons/${draftId}`);
+      setDrafts((prev) => prev.filter((d) => d.id !== draftId));
+    } catch {}
+  }
+
+  const stepLabels = {
+    1: 'Choose class', 2: 'Select standards', 3: 'Enter lesson',
+    4: 'Gap analysis', 5: 'Recommendations', 6: 'Review', 7: 'Saving',
+  };
 
   function handleOnboardingDismiss() {
     localStorage.setItem(ONBOARDING_KEY, '1');
@@ -108,6 +125,60 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* In-progress drafts */}
+      {drafts.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-base font-semibold mb-3" style={{ color: '#1E293B' }}>
+            Continue where you left off
+          </h2>
+          <div className="space-y-2">
+            {drafts.map((draft) => {
+              const updated = new Date(draft.updated_at).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+              });
+              const stepLabel = stepLabels[draft.current_step] || `Step ${draft.current_step}`;
+              return (
+                <div
+                  key={draft.id}
+                  className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl"
+                  style={{ backgroundColor: '#fff', border: '1px solid #E8EEF5', boxShadow: '0 1px 3px rgba(30,58,95,0.06)' }}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium" style={{ color: '#1E293B' }}>
+                        {draft.subject || 'Lesson'} {draft.grade_level ? `· Grade ${draft.grade_level}` : ''}
+                      </span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: '#EEF2F7', color: '#1e3a5f' }}
+                      >
+                        {stepLabel}
+                      </span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>Last saved {updated}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleDiscardDraft(draft.id)}
+                      className="text-xs px-2 py-1 rounded border"
+                      style={{ color: '#94a3b8', borderColor: '#e2e8f0' }}
+                    >
+                      Discard
+                    </button>
+                    <button
+                      onClick={() => navigate(`/wizard?resume=${draft.id}`)}
+                      className="btn-primary text-sm py-1.5 px-3"
+                    >
+                      Resume →
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Classes section */}
       <div>
@@ -175,6 +246,27 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Template section */}
+      <div className="mt-10 pt-6" style={{ borderTop: '1px solid #E8EEF5' }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: '#1E293B' }}>Lesson Template</h2>
+            <p className="text-sm mt-0.5" style={{ color: '#64748B' }}>
+              Current: <span className="font-medium capitalize" style={{ color: '#1e3a5f' }}>
+                {user?.template_choice || 'Classic'}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={() => setShowTemplatePicker(true)}
+            className="text-sm font-medium"
+            style={{ color: '#1e3a5f' }}
+          >
+            Change →
+          </button>
+        </div>
+      </div>
+
       {/* Add class modal */}
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)}>
         <ClassForm
@@ -194,6 +286,11 @@ export default function DashboardPage() {
             isEdit
           />
         )}
+      </Modal>
+
+      {/* Template picker modal */}
+      <Modal open={showTemplatePicker} onClose={() => setShowTemplatePicker(false)}>
+        <TemplatePicker onDone={() => setShowTemplatePicker(false)} />
       </Modal>
     </div>
   );

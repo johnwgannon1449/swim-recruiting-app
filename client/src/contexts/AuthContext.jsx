@@ -38,8 +38,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateTemplate = useCallback(async (template_choice) => {
+    const res = await api.patch('/auth/template', { template_choice });
+    setUser((prev) => ({ ...prev, template_choice: res.data.user.template_choice }));
+    return res.data.user;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateTemplate }}>
       {children}
     </AuthContext.Provider>
   );
