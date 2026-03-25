@@ -37,13 +37,13 @@ router.post(
 
       const password_hash = await bcrypt.hash(password, 12);
       const result = await pool.query(
-        'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, created_at',
+        'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, template_choice, created_at',
         [name, email, password_hash]
       );
       const user = result.rows[0];
       const token = issueToken(user);
 
-      res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
+      res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, template_choice: user.template_choice } });
     } catch (err) {
       console.error('Signup error:', err);
       res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -67,7 +67,7 @@ router.post(
     const { email, password } = req.body;
     try {
       const result = await pool.query(
-        'SELECT id, name, email, password_hash FROM users WHERE email = $1',
+        'SELECT id, name, email, password_hash, template_choice FROM users WHERE email = $1',
         [email]
       );
       const user = result.rows[0];
@@ -81,7 +81,7 @@ router.post(
       }
 
       const token = issueToken(user);
-      res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+      res.json({ token, user: { id: user.id, name: user.name, email: user.email, template_choice: user.template_choice } });
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -93,13 +93,32 @@ router.post(
 router.get('/me', require('../middleware/auth'), async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, template_choice, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'User not found.' });
     res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('Me error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+// PATCH /api/auth/template
+router.patch('/template', require('../middleware/auth'), async (req, res) => {
+  const { template_choice } = req.body;
+  const valid = ['classic', 'modern', 'structured', 'chalkboard', 'bright', 'storybook'];
+  if (!valid.includes(template_choice)) {
+    return res.status(400).json({ error: 'Invalid template choice.' });
+  }
+  try {
+    const result = await pool.query(
+      'UPDATE users SET template_choice = $1 WHERE id = $2 RETURNING id, name, email, template_choice',
+      [template_choice, req.user.id]
+    );
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    console.error('Template update error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });

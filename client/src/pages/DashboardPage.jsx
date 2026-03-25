@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import ClassForm from '../components/ClassForm';
 import Modal from '../components/Modal';
+import TemplatePicker from '../components/TemplatePicker';
 import { ClassCardSkeleton } from '../components/Skeleton';
 import OnboardingWelcome from '../components/OnboardingWelcome';
 
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [usage, setUsage] = useState(null);
   const [drafts, setDrafts] = useState([]);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   useEffect(() => {
     api.get('/classes')
@@ -75,6 +77,11 @@ export default function DashboardPage() {
       setDrafts((prev) => prev.filter((d) => d.id !== draftId));
     } catch {}
   }
+
+  const stepLabels = {
+    1: 'Choose class', 2: 'Select standards', 3: 'Enter lesson',
+    4: 'Gap analysis', 5: 'Recommendations', 6: 'Review', 7: 'Saving',
+  };
 
   function handleOnboardingDismiss() {
     localStorage.setItem(ONBOARDING_KEY, '1');
@@ -235,6 +242,27 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Template section */}
+      <div className="mt-10 pt-6" style={{ borderTop: '1px solid #E8EEF5' }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: '#1E293B' }}>Lesson Template</h2>
+            <p className="text-sm mt-0.5" style={{ color: '#64748B' }}>
+              Current: <span className="font-medium capitalize" style={{ color: '#1e3a5f' }}>
+                {user?.template_choice || 'Classic'}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={() => setShowTemplatePicker(true)}
+            className="text-sm font-medium"
+            style={{ color: '#1e3a5f' }}
+          >
+            Change →
+          </button>
+        </div>
+      </div>
+
       {/* Add class modal */}
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)}>
         <ClassForm onSave={handleAddClass} onCancel={() => setShowAddModal(false)} isEdit={false} />
@@ -250,6 +278,11 @@ export default function DashboardPage() {
             isEdit
           />
         )}
+      </Modal>
+
+      {/* Template picker modal */}
+      <Modal open={showTemplatePicker} onClose={() => setShowTemplatePicker(false)}>
+        <TemplatePicker onDone={() => setShowTemplatePicker(false)} />
       </Modal>
     </div>
   );

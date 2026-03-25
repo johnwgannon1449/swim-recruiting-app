@@ -58,6 +58,9 @@ ALTER TABLE lessons ADD COLUMN IF NOT EXISTS step_data JSONB DEFAULT '{}';
 ALTER TABLE lessons ADD COLUMN IF NOT EXISTS current_step INTEGER DEFAULT 1;
 ALTER TABLE lessons ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT TRUE;
 
+-- Template preference
+ALTER TABLE users ADD COLUMN IF NOT EXISTS template_choice VARCHAR(50) DEFAULT 'classic';
+
 -- Lesson analyses (gap analysis results)
 CREATE TABLE IF NOT EXISTS lesson_analyses (
   id SERIAL PRIMARY KEY,
